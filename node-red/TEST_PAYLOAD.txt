@@ -1,0 +1,9 @@
+MQTT OUT
+Topic:
+wallbox/display/status
+
+Payload JSON:
+{"connected":true,"charging":true,"power":1630,"current":7.1}
+
+Retain:
+true
