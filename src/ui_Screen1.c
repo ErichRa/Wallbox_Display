@@ -108,8 +108,8 @@ void ui_Screen1_screen_init(void)
     lv_obj_set_style_bg_opa(divider, LV_OPA_COVER, 0);
     lv_obj_set_style_border_width(divider, 0, 0);
 
-    make_label(main_panel, "Spannung", 570, 24, &lv_font_montserrat_14, COLOR_BLUE);
-    ui_VoltageLabel = make_label(main_panel, "--- V", 570, 45,
+    make_label(main_panel, "Ladestrom", 570, 24, &lv_font_montserrat_14, COLOR_BLUE);
+    ui_VoltageLabel = make_label(main_panel, "--.- A", 570, 45,
                                   &lv_font_montserrat_24, COLOR_TEXT);
 
     make_label(main_panel, "Energie heute", 570, 88, &lv_font_montserrat_14, COLOR_YELLOW);
