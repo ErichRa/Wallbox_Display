@@ -8,6 +8,7 @@
 #define TOPIC_STATUS          "wallbox/display/status"
 #define TOPIC_POWER           "wallbox/display/power"
 #define TOPIC_CURRENT         "wallbox/display/charge_current"
+#define TOPIC_CHARGE_PHASE    "wallbox/display/charge_phase"
 #define TOPIC_SESSION_ENERGY  "wallbox/display/session_energy"
 #define TOPIC_CHARGE_TIME     "wallbox/display/charge_time"
 
