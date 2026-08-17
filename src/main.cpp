@@ -1,6 +1,6 @@
 /*---------------------------------------------------------------
- * Elecrow DIS08070H V3.0 - stable PlatformIO70 display pipeline
- * + WiFi / MQTT test for Node-RED
+ * Elecrow DIS08070H V3.0 - Wallbox dashboard
+ * Stable RGB/LVGL pipeline + WiFi/MQTT + GT911 touch
  *--------------------------------------------------------------*/
 
 #include <WiFi.h>
@@ -75,7 +75,7 @@ public:
 LGFX lcd;
 #include "touch.h"
 
-// Existing SquareLine callback state.
+// Requested START/STOP state, changed by ui_events.c.
 int led = 0;
 
 namespace
@@ -125,11 +125,46 @@ void set_power_label(float watts)
 
 void set_status_label(bool connected, bool charging, float current)
 {
-    char text[32];
-    if(charging) snprintf(text, sizeof(text), "LÄDT %.1f A", current);
+    char text[40];
+    if(charging) snprintf(text, sizeof(text), "LÄDT · %.1f A", current);
     else if(connected) snprintf(text, sizeof(text), "VERBUNDEN");
     else snprintf(text, sizeof(text), "BEREIT");
     lv_label_set_text(ui_HumiLabel, text);
+    lv_label_set_text(ui_VehicleLabel,
+                      connected ? "Fahrzeug verbunden" : "Fahrzeug nicht verbunden");
+}
+
+void set_optional_dashboard_values(JsonDocument &doc)
+{
+    char text[32];
+
+    if(!doc["soc"].isNull()) {
+        int soc = doc["soc"].as<int>();
+        soc = constrain(soc, 0, 100);
+        lv_arc_set_value(ui_SocArc, soc);
+        snprintf(text, sizeof(text), "%d %%", soc);
+        lv_label_set_text(ui_SocLabel, text);
+    }
+
+    if(!doc["voltage"].isNull()) {
+        snprintf(text, sizeof(text), "%.0f V", doc["voltage"].as<float>());
+        lv_label_set_text(ui_VoltageLabel, text);
+    }
+
+    if(!doc["energyToday"].isNull()) {
+        snprintf(text, sizeof(text), "%.2f kWh", doc["energyToday"].as<float>());
+        lv_label_set_text(ui_EnergyTodayLabel, text);
+    }
+
+    if(!doc["chargeTime"].isNull()) {
+        const char *charge_time = doc["chargeTime"] | "--:-- h";
+        lv_label_set_text(ui_ChargeTimeLabel, charge_time);
+    }
+
+    if(!doc["temperature"].isNull()) {
+        snprintf(text, sizeof(text), "%.0f °C", doc["temperature"].as<float>());
+        lv_label_set_text(ui_TemperatureLabel, text);
+    }
 }
 
 void mqtt_callback(char *topic, byte *payload, unsigned int length)
@@ -150,6 +185,7 @@ void mqtt_callback(char *topic, byte *payload, unsigned int length)
 
     set_power_label(power);
     set_status_label(connected, charging, current);
+    set_optional_dashboard_values(doc);
 
     Serial.printf("Status: connected=%d charging=%d power=%.0fW current=%.1fA\n",
                   connected, charging, power, current);
@@ -177,6 +213,14 @@ void publish_presence()
     mqtt.publish(TOPIC_ONLINE, "1", true);
     mqtt.publish(TOPIC_IP, ip.c_str(), true);
     mqtt.publish(TOPIC_RSSI, rssi.c_str(), true);
+
+    char wifi_text[32];
+    snprintf(wifi_text, sizeof(wifi_text), "WLAN  %ld dBm", WiFi.RSSI());
+    lv_label_set_text(ui_WifiLabel, wifi_text);
+    lv_label_set_text(ui_MqttLabel, "MQTT  Verbunden");
+
+    String ip_text = "IP: " + ip;
+    lv_label_set_text(ui_IpLabel, ip_text.c_str());
 
     Serial.printf("WLAN verbunden: IP=%s RSSI=%s dBm\n", ip.c_str(), rssi.c_str());
 }
@@ -217,6 +261,7 @@ void mqtt_service()
         }
         else {
             Serial.printf("MQTT Fehler rc=%d\n", mqtt.state());
+            if(ui_MqttLabel) lv_label_set_text(ui_MqttLabel, "MQTT  Fehler");
         }
     }
 
@@ -290,7 +335,6 @@ void setup()
     digitalWrite(BACKLIGHT_PIN, HIGH);
 
     ui_init();
-    lv_label_set_text(ui_TempLabel, "--.-- kW");
     lv_label_set_text(ui_HumiLabel, "MQTT WARTET");
 
     mqtt.setServer(MQTT_HOST, MQTT_PORT);
