@@ -99,6 +99,9 @@ bool current_received = false;
 float pending_session_energy_kwh = 0.0f;
 float displayed_session_energy_kwh = -1.0f;
 bool session_energy_received = false;
+char pending_charge_time[24] = "--:-- h";
+char displayed_charge_time[24] = "";
+bool charge_time_received = false;
 
 lv_obj_t *power_decimal_label = nullptr;
 lv_obj_t *power_fraction_label = nullptr;
@@ -333,6 +336,17 @@ void mqtt_callback(char *topic, byte *payload, unsigned int length)
         session_energy_received = true;
         return;
     }
+
+    if(strcmp(topic, TOPIC_CHARGE_TIME) == 0) {
+        if(buffer[0] == '\0') {
+            Serial.println("MQTT Ladezeit leer");
+            return;
+        }
+        snprintf(pending_charge_time, sizeof(pending_charge_time), "%s", buffer);
+        charge_time_received = true;
+        Serial.printf("MQTT RX [%s] = %s\n", topic, pending_charge_time);
+        return;
+    }
 }
 
 void update_display_from_pending_data()
@@ -370,6 +384,13 @@ void update_display_from_pending_data()
         displayed_session_energy_kwh = effective_session_energy;
         set_session_energy_label(displayed_session_energy_kwh);
         Serial.printf("Display Ladeenergie aktualisiert: %.3f kWh\n", displayed_session_energy_kwh);
+    }
+
+    const char *effective_charge_time = charge_time_received ? pending_charge_time : "--:-- h";
+    if(strcmp(effective_charge_time, displayed_charge_time) != 0) {
+        snprintf(displayed_charge_time, sizeof(displayed_charge_time), "%s", effective_charge_time);
+        lv_label_set_text(ui_ChargeTimeLabel, displayed_charge_time);
+        Serial.printf("Display Ladezeit aktualisiert: %s\n", displayed_charge_time);
     }
 }
 
@@ -433,10 +454,12 @@ void mqtt_service()
             mqtt.subscribe(TOPIC_POWER, 0);
             mqtt.subscribe(TOPIC_CURRENT, 0);
             mqtt.subscribe(TOPIC_SESSION_ENERGY, 0);
+            mqtt.subscribe(TOPIC_CHARGE_TIME, 0);
             Serial.printf("MQTT subscribe: %s\n", TOPIC_STATUS);
             Serial.printf("MQTT subscribe: %s\n", TOPIC_POWER);
             Serial.printf("MQTT subscribe: %s\n", TOPIC_CURRENT);
             Serial.printf("MQTT subscribe: %s\n", TOPIC_SESSION_ENERGY);
+            Serial.printf("MQTT subscribe: %s\n", TOPIC_CHARGE_TIME);
             publish_presence();
         }
         else {
@@ -517,6 +540,7 @@ void setup()
     set_power_label(0.0f);
     set_current_label(0.0f);
     set_session_energy_label(0.0f);
+    lv_label_set_text(ui_ChargeTimeLabel, "--:-- h");
 
     mqtt.setServer(MQTT_HOST, MQTT_PORT);
     mqtt.setCallback(mqtt_callback);
