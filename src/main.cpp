@@ -73,12 +73,13 @@ public:
 
 LGFX lcd;
 #include "touch.h"
+
+// Existing SquareLine callback state.
 int led = 0;
 
 namespace
 {
 constexpr uint8_t BACKLIGHT_PIN = 2;
-constexpr uint8_t RELAY_PIN = 38;
 constexpr uint32_t SCREEN_WIDTH = 800;
 constexpr uint32_t SCREEN_HEIGHT = 480;
 
@@ -88,140 +89,30 @@ uint32_t last_wifi_try = 0;
 uint32_t last_mqtt_try = 0;
 int last_led_sent = -1;
 
-uint32_t tick_get() { return millis(); }
-
-void i2c_scan(const char *label)
+uint32_t tick_get()
 {
-    Serial.println();
-    Serial.printf("=== I2C Scan: %s ===\n", label);
-
-    uint8_t found = 0;
-    for(uint8_t address = 1; address < 127; ++address) {
-        Wire1.beginTransmission(address);
-        const uint8_t error = Wire1.endTransmission();
-        if(error == 0) {
-            Serial.printf("I2C device found at 0x%02X", address);
-            if(address == PCA9557_ADDRESS) Serial.print("  [PCA9557]");
-            if(address == GT911_ADDRESS) Serial.print("  [GT911]");
-            Serial.println();
-            ++found;
-        }
-    }
-
-    if(found == 0) Serial.println("No I2C devices found");
-    Serial.printf("=== I2C Scan done: %u device(s) ===\n", found);
-    Serial.println();
-}
-
-bool gt911_read_with_stop(uint16_t reg, uint8_t *data, size_t size)
-{
-    Wire1.beginTransmission(GT911_ADDRESS);
-    Wire1.write(static_cast<uint8_t>(reg >> 8));
-    Wire1.write(static_cast<uint8_t>(reg));
-
-    const uint8_t tx_error = Wire1.endTransmission(true);
-    if(tx_error != 0) {
-        Serial.printf("STOP read: endTransmission error=%u at reg 0x%04X\n", tx_error, reg);
-        return false;
-    }
-
-    const size_t received = Wire1.requestFrom(GT911_ADDRESS, size, true);
-    if(received != size) {
-        Serial.printf("STOP read: requested=%u received=%u at reg 0x%04X\n",
-                      static_cast<unsigned>(size),
-                      static_cast<unsigned>(received),
-                      reg);
-        while(Wire1.available()) Wire1.read();
-        return false;
-    }
-
-    for(size_t index = 0; index < size; ++index) data[index] = Wire1.read();
-    return true;
-}
-
-void print_product_id(const char *method, const uint8_t *product_id)
-{
-    Serial.printf("%s product ID raw: %02X %02X %02X %02X\n",
-                  method,
-                  product_id[0], product_id[1], product_id[2], product_id[3]);
-    Serial.printf("%s product ID text: %c%c%c%c\n",
-                  method,
-                  product_id[0], product_id[1], product_id[2], product_id[3]);
-}
-
-void gt911_diagnostics()
-{
-    Serial.println();
-    Serial.println("=== GT911 diagnostics ===");
-
-    Serial.println("Running touch_init() reset sequence ...");
-    touch_init();
-    Serial.println("touch_init() done");
-
-    i2c_scan("after touch_init()");
-
-    Serial.println("Reading GT911 product ID at 0x8140 with REPEATED START ...");
-    uint8_t product_repeated[4] = {0, 0, 0, 0};
-    if(gt911_read(0x8140, product_repeated, sizeof(product_repeated))) {
-        print_product_id("REPEATED", product_repeated);
-    }
-    else {
-        Serial.println("REPEATED product ID read FAILED");
-    }
-
-    delay(50);
-
-    Serial.println("Reading GT911 product ID at 0x8140 with STOP ...");
-    uint8_t product_stop[4] = {0, 0, 0, 0};
-    if(gt911_read_with_stop(0x8140, product_stop, sizeof(product_stop))) {
-        print_product_id("STOP", product_stop);
-    }
-    else {
-        Serial.println("STOP product ID read FAILED");
-    }
-
-    delay(50);
-
-    Serial.println("Reading GT911 status at 0x814E with REPEATED START ...");
-    uint8_t status_repeated = 0;
-    if(gt911_read(GT911_POINT_INFO, &status_repeated, 1)) {
-        Serial.printf("REPEATED status: 0x%02X\n", status_repeated);
-    }
-    else {
-        Serial.println("REPEATED status read FAILED");
-    }
-
-    delay(50);
-
-    Serial.println("Reading GT911 status at 0x814E with STOP ...");
-    uint8_t status_stop = 0;
-    if(gt911_read_with_stop(GT911_POINT_INFO, &status_stop, 1)) {
-        Serial.printf("STOP status: 0x%02X\n", status_stop);
-    }
-    else {
-        Serial.println("STOP status read FAILED");
-    }
-
-    delay(50);
-
-    Serial.println("Reading GT911 config version at 0x8047 with STOP ...");
-    uint8_t config_version = 0;
-    if(gt911_read_with_stop(0x8047, &config_version, 1)) {
-        Serial.printf("STOP config version: 0x%02X\n", config_version);
-    }
-    else {
-        Serial.println("STOP config version read FAILED");
-    }
-
-    Serial.println("=== GT911 diagnostics done ===");
-    Serial.println();
+    return millis();
 }
 
 void display_flush(lv_display_t *display, const lv_area_t *area, uint8_t *pixel_map)
 {
     (void)area;
-    if(!lcd.bus.presentFrameBuffer(pixel_map)) Serial.println("LovyanGFX VSYNC frame switch timeout");
+    if(!lcd.bus.presentFrameBuffer(pixel_map)) {
+        Serial.println("LovyanGFX VSYNC frame switch timeout");
+    }
     lv_display_flush_ready(display);
+}
+
+void touchpad_read(lv_indev_t *indev, lv_indev_data_t *data)
+{
+    (void)indev;
+    data->state = LV_INDEV_STATE_RELEASED;
+
+    if(touch_touched()) {
+        data->state = LV_INDEV_STATE_PRESSED;
+        data->point.x = touch_last_x;
+        data->point.y = touch_last_y;
+    }
 }
 
 void set_power_label(float watts)
@@ -243,27 +134,34 @@ void set_status_label(bool connected, bool charging, float current)
 void mqtt_callback(char *topic, byte *payload, unsigned int length)
 {
     if(strcmp(topic, TOPIC_STATUS) != 0) return;
+
     JsonDocument doc;
     DeserializationError err = deserializeJson(doc, payload, length);
     if(err) {
         Serial.printf("MQTT JSON Fehler: %s\n", err.c_str());
         return;
     }
+
     const bool connected = doc["connected"] | false;
     const bool charging = doc["charging"] | false;
     const float power = doc["power"] | 0.0f;
     const float current = doc["current"] | 0.0f;
+
     set_power_label(power);
     set_status_label(connected, charging, current);
-    Serial.printf("Status: connected=%d charging=%d power=%.0fW current=%.1fA\n", connected, charging, power, current);
+
+    Serial.printf("Status: connected=%d charging=%d power=%.0fW current=%.1fA\n",
+                  connected, charging, power, current);
 }
 
 void wifi_service()
 {
     if(WiFi.status() == WL_CONNECTED) return;
+
     const uint32_t now = millis();
     if(now - last_wifi_try < 10000) return;
     last_wifi_try = now;
+
     Serial.printf("WLAN verbinden mit %s ...\n", WIFI_SSID);
     WiFi.mode(WIFI_STA);
     WiFi.setSleep(false);
@@ -274,34 +172,53 @@ void publish_presence()
 {
     const String ip = WiFi.localIP().toString();
     const String rssi = String(WiFi.RSSI());
+
     mqtt.publish(TOPIC_ONLINE, "1", true);
     mqtt.publish(TOPIC_IP, ip.c_str(), true);
     mqtt.publish(TOPIC_RSSI, rssi.c_str(), true);
+
     Serial.printf("WLAN verbunden: IP=%s RSSI=%s dBm\n", ip.c_str(), rssi.c_str());
 }
 
 void mqtt_service()
 {
     if(WiFi.status() != WL_CONNECTED) return;
+
     if(!mqtt.connected()) {
         const uint32_t now = millis();
         if(now - last_mqtt_try < 5000) return;
         last_mqtt_try = now;
+
         Serial.printf("MQTT verbinden mit %s:%d ...\n", MQTT_HOST, MQTT_PORT);
+
         bool ok = false;
         if(strlen(MQTT_USER) > 0) {
-            ok = mqtt.connect(MQTT_CLIENT_ID, MQTT_USER, MQTT_PASSWORD, TOPIC_ONLINE, 0, true, "0");
-        } else {
-            ok = mqtt.connect(MQTT_CLIENT_ID, TOPIC_ONLINE, 0, true, "0");
+            ok = mqtt.connect(MQTT_CLIENT_ID,
+                              MQTT_USER,
+                              MQTT_PASSWORD,
+                              TOPIC_ONLINE,
+                              0,
+                              true,
+                              "0");
         }
+        else {
+            ok = mqtt.connect(MQTT_CLIENT_ID,
+                              TOPIC_ONLINE,
+                              0,
+                              true,
+                              "0");
+        }
+
         if(ok) {
             Serial.println("MQTT verbunden");
             mqtt.subscribe(TOPIC_STATUS);
             publish_presence();
-        } else {
+        }
+        else {
             Serial.printf("MQTT Fehler rc=%d\n", mqtt.state());
         }
     }
+
     mqtt.loop();
 }
 
@@ -309,11 +226,14 @@ void publish_button_command()
 {
     if(led == last_led_sent) return;
     last_led_sent = led;
+
     if(!mqtt.connected()) return;
+
     if(led == 1) {
         mqtt.publish(TOPIC_CMD_START, "1");
         Serial.println("MQTT -> START");
-    } else {
+    }
+    else {
         mqtt.publish(TOPIC_CMD_STOP, "1");
         Serial.println("MQTT -> STOP");
     }
@@ -324,13 +244,12 @@ void setup()
 {
     Serial.begin(115200);
     delay(300);
-    pinMode(RELAY_PIN, OUTPUT);
-    digitalWrite(RELAY_PIN, LOW);
 
-    Wire1.begin(19, 20);
+    // GPIO38 is the GT911 interrupt line on this board. It must not be
+    // configured as the relay output used by the original Elecrow demo.
+
+    Wire1.begin(TOUCH_SDA, TOUCH_SCL);
     Wire1.setClock(400000);
-
-    i2c_scan("before lcd.begin()");
 
     if(!lcd.begin()) {
         Serial.println("lcd.begin() failed");
@@ -338,18 +257,13 @@ void setup()
     }
     delay(200);
 
-    i2c_scan("after lcd.begin()");
-    gt911_diagnostics();
-
-    // DIAGNOSTIC MODE:
-    // LVGL touch polling is intentionally disabled. Only the one-shot
-    // diagnostics above talk to the GT911 after touch_init().
-
     lv_init();
     lv_tick_set_cb(tick_get);
+    touch_init();
 
     lv_color_t *frame_buffer_0 = reinterpret_cast<lv_color_t *>(lcd.bus.getFrameBuffer(0));
     lv_color_t *frame_buffer_1 = reinterpret_cast<lv_color_t *>(lcd.bus.getFrameBuffer(1));
+
     Serial.printf("RGB frame buffers: %p, %p\n", frame_buffer_0, frame_buffer_1);
     if(frame_buffer_0 == nullptr || frame_buffer_1 == nullptr) {
         Serial.println("RGB double frame buffer allocation failed");
@@ -359,12 +273,19 @@ void setup()
     lv_display_t *display = lv_display_create(lcd.width(), lcd.height());
     lv_display_set_color_format(display, LV_COLOR_FORMAT_RGB565);
     lv_display_set_flush_cb(display, display_flush);
-    lv_display_set_buffers(display, frame_buffer_0, frame_buffer_1,
+    lv_display_set_buffers(display,
+                           frame_buffer_0,
+                           frame_buffer_1,
                            SCREEN_WIDTH * SCREEN_HEIGHT * sizeof(lv_color_t),
                            LV_DISPLAY_RENDER_MODE_FULL);
 
+    lv_indev_t *touchpad = lv_indev_create();
+    lv_indev_set_type(touchpad, LV_INDEV_TYPE_POINTER);
+    lv_indev_set_read_cb(touchpad, touchpad_read);
+
     pinMode(BACKLIGHT_PIN, OUTPUT);
     digitalWrite(BACKLIGHT_PIN, HIGH);
+
     ui_init();
     lv_label_set_text(ui_TempLabel, "--.-- kW");
     lv_label_set_text(ui_HumiLabel, "MQTT WARTET");
@@ -372,6 +293,7 @@ void setup()
     mqtt.setServer(MQTT_HOST, MQTT_PORT);
     mqtt.setCallback(mqtt_callback);
     mqtt.setBufferSize(1024);
+
     wifi_service();
 }
 
@@ -380,7 +302,7 @@ void loop()
     wifi_service();
     mqtt_service();
     publish_button_command();
-    digitalWrite(RELAY_PIN, led == 1 ? HIGH : LOW);
+
     lv_timer_handler();
     delay(10);
 }
