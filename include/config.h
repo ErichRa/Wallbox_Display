@@ -5,8 +5,11 @@
 #include "secrets.h"
 
 // Node-RED -> CrowPanel
-#define TOPIC_STATUS    "wallbox/display/status"
+#define TOPIC_STATUS         "wallbox/display/status"
 
-// CrowPanel -> Node-RED
-#define TOPIC_CMD_START "wallbox/cmd/start"
-#define TOPIC_CMD_STOP  "wallbox/cmd/stop"
+// CrowPanel -> Node-RED / MQTT Explorer
+#define TOPIC_ONLINE         "wallbox/display/online"
+#define TOPIC_IP             "wallbox/display/ip"
+#define TOPIC_RSSI           "wallbox/display/rssi"
+#define TOPIC_CMD_START      "wallbox/cmd/start"
+#define TOPIC_CMD_STOP       "wallbox/cmd/stop"
