@@ -109,10 +109,10 @@ void ui_Screen1_screen_init(void)
     lv_obj_set_style_border_width(divider, 0, 0);
 
     make_label(main_panel, "Ladestrom", 570, 24, &lv_font_montserrat_14, COLOR_BLUE);
-    ui_VoltageLabel = make_label(main_panel, "--.- A", 570, 45,
+    ui_VoltageLabel = make_label(main_panel, "-- A", 570, 45,
                                   &lv_font_montserrat_24, COLOR_TEXT);
 
-    make_label(main_panel, "Energie heute", 570, 88, &lv_font_montserrat_14, COLOR_YELLOW);
+    make_label(main_panel, "Ladeenergie", 570, 88, &lv_font_montserrat_14, COLOR_YELLOW);
     ui_EnergyTodayLabel = make_label(main_panel, "--.-- kWh", 570, 109,
                                      &lv_font_montserrat_20, COLOR_TEXT);
 
