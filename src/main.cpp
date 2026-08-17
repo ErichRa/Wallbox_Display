@@ -134,6 +134,100 @@ void set_status_label(bool connected, bool charging, float current)
                       connected ? "Fahrzeug verbunden" : "Fahrzeug nicht verbunden");
 }
 
+void set_wallbox_status(const String &status)
+{
+    const char *main_text = "STATUS UNBEKANNT";
+    const char *vehicle_text = "Fahrzeugstatus unbekannt";
+
+    if(status == "disconnected") {
+        main_text = "BEREIT";
+        vehicle_text = "Fahrzeug nicht verbunden";
+    }
+    else if(status == "connected") {
+        main_text = "VERBUNDEN";
+        vehicle_text = "Fahrzeug verbunden";
+    }
+    else if(status == "charging") {
+        main_text = "LÄDT";
+        vehicle_text = "Fahrzeug wird geladen";
+    }
+    else if(status == "charged") {
+        main_text = "GELADEN";
+        vehicle_text = "Ladevorgang beendet";
+    }
+    else if(status == "waiting_sun") {
+        main_text = "WARTET AUF SONNE";
+        vehicle_text = "Fahrzeug verbunden";
+    }
+    else if(status == "waiting_rfid") {
+        main_text = "WARTET AUF RFID";
+        vehicle_text = "Fahrzeug verbunden";
+    }
+    else if(status == "waiting_start") {
+        main_text = "WARTET AUF START";
+        vehicle_text = "Fahrzeug verbunden";
+    }
+    else if(status == "low_soc") {
+        main_text = "BATTERIE-SOC ZU NIEDRIG";
+        vehicle_text = "Laden wartet";
+    }
+    else if(status == "charging_limit") {
+        main_text = "LADELEISTUNG BEGRENZT";
+        vehicle_text = "Fahrzeug verbunden";
+    }
+    else if(status == "start_charging") {
+        main_text = "LADEVORGANG STARTET";
+        vehicle_text = "Fahrzeug verbunden";
+    }
+    else if(status == "switching_3_phase") {
+        main_text = "UMSCHALTUNG AUF 3 PHASEN";
+        vehicle_text = "Fahrzeug verbunden";
+    }
+    else if(status == "switching_1_phase") {
+        main_text = "UMSCHALTUNG AUF 1 PHASE";
+        vehicle_text = "Fahrzeug verbunden";
+    }
+    else if(status == "stop_charging") {
+        main_text = "LADEVORGANG STOPPT";
+        vehicle_text = "Fahrzeug verbunden";
+    }
+    else if(status == "ground_error") {
+        main_text = "FEHLER: ERDUNG";
+        vehicle_text = "Wallbox-Fehler";
+    }
+    else if(status == "contact_error") {
+        main_text = "FEHLER: SCHÜTZ";
+        vehicle_text = "Wallbox-Fehler";
+    }
+    else if(status == "cp_error") {
+        main_text = "FEHLER: CP-EINGANG";
+        vehicle_text = "Wallbox-Fehler";
+    }
+    else if(status == "residual_current") {
+        main_text = "FEHLERSTROM ERKANNT";
+        vehicle_text = "Wallbox-Fehler";
+    }
+    else if(status == "undervoltage") {
+        main_text = "UNTERSPANNUNG";
+        vehicle_text = "Wallbox-Fehler";
+    }
+    else if(status == "overvoltage") {
+        main_text = "ÜBERSPANNUNG";
+        vehicle_text = "Wallbox-Fehler";
+    }
+    else if(status == "overheating") {
+        main_text = "ÜBERTEMPERATUR";
+        vehicle_text = "Wallbox-Fehler";
+    }
+    else if(status == "reserved") {
+        main_text = "RESERVIERT";
+        vehicle_text = "Wallbox-Status reserviert";
+    }
+
+    lv_label_set_text(ui_HumiLabel, main_text);
+    lv_label_set_text(ui_VehicleLabel, vehicle_text);
+}
+
 void set_optional_dashboard_values(JsonDocument &doc)
 {
     char text[32];
@@ -169,26 +263,21 @@ void set_optional_dashboard_values(JsonDocument &doc)
 
 void mqtt_callback(char *topic, byte *payload, unsigned int length)
 {
-    if(strcmp(topic, TOPIC_STATUS) != 0) return;
+    String message;
+    message.reserve(length);
+    for(unsigned int i = 0; i < length; ++i) {
+        message += static_cast<char>(payload[i]);
+    }
+    message.trim();
 
-    JsonDocument doc;
-    DeserializationError err = deserializeJson(doc, payload, length);
-    if(err) {
-        Serial.printf("MQTT JSON Fehler: %s\n", err.c_str());
+    Serial.printf("MQTT RX [%s] = %s\n", topic, message.c_str());
+
+    // Node-RED sends wallbox/display/status as plain text, not JSON.
+    if(strcmp(topic, TOPIC_STATUS) == 0) {
+        set_wallbox_status(message);
+        Serial.printf("Wallbox Status: %s\n", message.c_str());
         return;
     }
-
-    const bool connected = doc["connected"] | false;
-    const bool charging = doc["charging"] | false;
-    const float power = doc["power"] | 0.0f;
-    const float current = doc["current"] | 0.0f;
-
-    set_power_label(power);
-    set_status_label(connected, charging, current);
-    set_optional_dashboard_values(doc);
-
-    Serial.printf("Status: connected=%d charging=%d power=%.0fW current=%.1fA\n",
-                  connected, charging, power, current);
 }
 
 void wifi_service()
@@ -256,7 +345,8 @@ void mqtt_service()
 
         if(ok) {
             Serial.println("MQTT verbunden");
-            mqtt.subscribe(TOPIC_STATUS);
+            mqtt.subscribe(TOPIC_STATUS, 0);
+            Serial.printf("MQTT subscribe: %s\n", TOPIC_STATUS);
             publish_presence();
         }
         else {
