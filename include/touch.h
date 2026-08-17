@@ -121,7 +121,7 @@ static bool gt911_read(uint16_t reg, uint8_t *data, size_t size)
     Wire1.beginTransmission(GT911_ADDRESS);
     Wire1.write(static_cast<uint8_t>(reg >> 8));
     Wire1.write(static_cast<uint8_t>(reg));
-    if(Wire1.endTransmission(false) != 0) return false;
+    if(Wire1.endTransmission(true) != 0) return false;
     if(Wire1.requestFrom(GT911_ADDRESS, size) != size) return false;
 
     for(size_t index = 0; index < size; ++index) data[index] = Wire1.read();
