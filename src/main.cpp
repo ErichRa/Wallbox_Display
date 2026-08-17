@@ -88,8 +88,13 @@ PubSubClient mqtt(wifi_client);
 uint32_t last_wifi_try = 0;
 uint32_t last_mqtt_try = 0;
 int last_led_sent = -1;
+
+// MQTT callbacks only update pending data. LVGL is updated from loop().
 int pending_wallbox_status = -1;
 int displayed_wallbox_status = -2;
+float pending_power_watts = 0.0f;
+float displayed_power_watts = -1.0f;
+bool power_received = false;
 
 uint32_t tick_get()
 {
@@ -115,6 +120,24 @@ void touchpad_read(lv_indev_t *indev, lv_indev_data_t *data)
         data->point.x = touch_last_x;
         data->point.y = touch_last_y;
     }
+}
+
+void set_power_label(float watts)
+{
+    if(watts < 0.0f) watts = 0.0f;
+
+    char number[16];
+    char text[24];
+    snprintf(number, sizeof(number), "%6.2f", watts / 1000.0f);
+
+    size_t len = strlen(number);
+    for(size_t i = 0; i < len; ++i) {
+        text[i] = (number[i] == '.') ? ',' : number[i];
+    }
+    text[len] = '\0';
+    strncat(text, " kW", sizeof(text) - strlen(text) - 1);
+
+    lv_label_set_text(ui_TempLabel, text);
 }
 
 void set_wallbox_status(int status)
@@ -217,39 +240,75 @@ void set_wallbox_status(int status)
     lv_label_set_text(ui_VehicleLabel, vehicle_text);
 }
 
-void mqtt_callback(char *topic, byte *payload, unsigned int length)
+bool payload_to_buffer(byte *payload, unsigned int length, char *buffer, size_t buffer_size)
 {
-    if(strcmp(topic, TOPIC_STATUS) != 0) return;
-
-    char buffer[16];
-    const unsigned int copy_length = (length < sizeof(buffer) - 1) ? length : sizeof(buffer) - 1;
+    if(buffer_size == 0) return false;
+    const unsigned int copy_length = (length < buffer_size - 1) ? length : buffer_size - 1;
     memcpy(buffer, payload, copy_length);
     buffer[copy_length] = '\0';
+    return copy_length == length;
+}
 
-    char *end = nullptr;
-    const long value = strtol(buffer, &end, 10);
-
-    if(end == buffer || *end != '\0' || value < 0 || value > 24) {
-        Serial.printf("MQTT Status ungueltig: %s\n", buffer);
-        pending_wallbox_status = -1;
+void mqtt_callback(char *topic, byte *payload, unsigned int length)
+{
+    char buffer[24];
+    if(!payload_to_buffer(payload, length, buffer, sizeof(buffer))) {
+        Serial.printf("MQTT Payload zu lang [%s]\n", topic);
         return;
     }
 
-    Serial.printf("MQTT RX [%s] = %ld\n", topic, value);
+    if(strcmp(topic, TOPIC_STATUS) == 0) {
+        char *end = nullptr;
+        const long value = strtol(buffer, &end, 10);
 
-    // Im MQTT-Callback niemals direkt auf LVGL zugreifen.
-    // Nur den neuen Status vormerken; die Anzeige wird im Hauptloop aktualisiert.
-    pending_wallbox_status = static_cast<int>(value);
+        if(end == buffer || *end != '\0' || value < 0 || value > 24) {
+            Serial.printf("MQTT Status ungueltig: %s\n", buffer);
+            pending_wallbox_status = -1;
+            return;
+        }
+
+        Serial.printf("MQTT RX [%s] = %ld\n", topic, value);
+        pending_wallbox_status = static_cast<int>(value);
+        return;
+    }
+
+    if(strcmp(topic, TOPIC_POWER) == 0) {
+        char *end = nullptr;
+        const float value = strtof(buffer, &end);
+
+        if(end == buffer || *end != '\0' || value < 0.0f) {
+            Serial.printf("MQTT Power ungueltig: %s\n", buffer);
+            return;
+        }
+
+        Serial.printf("MQTT RX [%s] = %.1f W\n", topic, value);
+        pending_power_watts = value;
+        power_received = true;
+        return;
+    }
 }
 
 void update_display_from_pending_data()
 {
-    if(pending_wallbox_status == displayed_wallbox_status) return;
+    if(pending_wallbox_status != displayed_wallbox_status) {
+        displayed_wallbox_status = pending_wallbox_status;
+        set_wallbox_status(displayed_wallbox_status);
+        Serial.printf("Display Status aktualisiert: %d\n", displayed_wallbox_status);
+    }
 
-    displayed_wallbox_status = pending_wallbox_status;
-    set_wallbox_status(displayed_wallbox_status);
+    float effective_power = power_received ? pending_power_watts : 0.0f;
 
-    Serial.printf("Display Status aktualisiert: %d\n", displayed_wallbox_status);
+    // Die Wallbox liefert im Stillstand keinen Power-Wert. Alte Werte deshalb
+    // bei BEREIT und GELADEN sicher auf 0,00 kW zuruecksetzen.
+    if(displayed_wallbox_status == 0 || displayed_wallbox_status == 3) {
+        effective_power = 0.0f;
+    }
+
+    if(effective_power != displayed_power_watts) {
+        displayed_power_watts = effective_power;
+        set_power_label(displayed_power_watts);
+        Serial.printf("Display Power aktualisiert: %.1f W\n", displayed_power_watts);
+    }
 }
 
 void wifi_service()
@@ -318,7 +377,9 @@ void mqtt_service()
         if(ok) {
             Serial.println("MQTT verbunden");
             mqtt.subscribe(TOPIC_STATUS, 0);
+            mqtt.subscribe(TOPIC_POWER, 0);
             Serial.printf("MQTT subscribe: %s\n", TOPIC_STATUS);
+            Serial.printf("MQTT subscribe: %s\n", TOPIC_POWER);
             publish_presence();
         }
         else {
@@ -398,6 +459,7 @@ void setup()
 
     ui_init();
     lv_label_set_text(ui_HumiLabel, "MQTT WARTET");
+    set_power_label(0.0f);
 
     mqtt.setServer(MQTT_HOST, MQTT_PORT);
     mqtt.setCallback(mqtt_callback);
