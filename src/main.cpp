@@ -83,6 +83,9 @@ public:
 LGFX lcd;
 #include "touch.h"
 
+// Existing SquareLine callback state.
+int led = 0;
+
 namespace
 {
 constexpr uint8_t  BACKLIGHT_PIN = 2;
@@ -221,8 +224,6 @@ void publish_button_command()
     // Existing generated UI changes global variable "led":
     // ON button -> led=1, OFF button -> led=0.
     // We use that as a very small first MQTT command test.
-    extern int led;
-
     if(led == last_led_sent) return;
     last_led_sent = led;
 
@@ -238,9 +239,6 @@ void publish_button_command()
     }
 }
 }
-
-// Existing SquareLine callback state.
-int led = 0;
 
 void setup()
 {
