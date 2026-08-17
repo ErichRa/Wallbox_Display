@@ -5,9 +5,10 @@
 #include "secrets.h"
 
 // Node-RED -> CrowPanel
-#define TOPIC_STATUS         "wallbox/display/status"
-#define TOPIC_POWER          "wallbox/display/power"
-#define TOPIC_CURRENT        "wallbox/display/charge_current"
+#define TOPIC_STATUS          "wallbox/display/status"
+#define TOPIC_POWER           "wallbox/display/power"
+#define TOPIC_CURRENT         "wallbox/display/charge_current"
+#define TOPIC_SESSION_ENERGY  "wallbox/display/session_energy"
 
 // CrowPanel -> Node-RED / MQTT Explorer
 #define TOPIC_ONLINE         "wallbox/display/online"
