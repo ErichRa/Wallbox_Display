@@ -96,10 +96,13 @@ bool power_received = false;
 float pending_current_amps = 0.0f;
 float displayed_current_amps = -1.0f;
 bool current_received = false;
+char pending_charge_phase[16] = "keine Ladung";
+char displayed_charge_phase[16] = "";
+bool charge_phase_received = false;
 float pending_session_energy_kwh = 0.0f;
 float displayed_session_energy_kwh = -1.0f;
 bool session_energy_received = false;
-char pending_charge_time[24] = "--:-- h";
+char pending_charge_time[24] = "--.-- h";
 char displayed_charge_time[24] = "";
 bool charge_time_received = false;
 
@@ -213,12 +216,15 @@ void set_power_label(float watts)
     lv_label_set_text(power_fraction_label, fraction_text);
 }
 
-void set_current_label(float amps)
+void set_current_phase_label(float amps, const char *phase)
 {
     if(amps < 0.0f) amps = 0.0f;
 
-    char text[16];
-    snprintf(text, sizeof(text), "%.0f A", amps);
+    const char *phase_text = phase;
+    if(strcmp(phase, "keine Ladung") == 0) phase_text = "--";
+
+    char text[24];
+    snprintf(text, sizeof(text), "%.0f A  %s", amps, phase_text);
     lv_label_set_text(ui_VoltageLabel, text);
 }
 
@@ -324,6 +330,19 @@ void mqtt_callback(char *topic, byte *payload, unsigned int length)
         return;
     }
 
+    if(strcmp(topic, TOPIC_CHARGE_PHASE) == 0) {
+        if(strcmp(buffer, "1-ph") != 0 &&
+           strcmp(buffer, "3-ph") != 0 &&
+           strcmp(buffer, "keine Ladung") != 0) {
+            Serial.printf("MQTT Ladephase ungueltig: %s\n", buffer);
+            return;
+        }
+        snprintf(pending_charge_phase, sizeof(pending_charge_phase), "%s", buffer);
+        charge_phase_received = true;
+        Serial.printf("MQTT RX [%s] = %s\n", topic, pending_charge_phase);
+        return;
+    }
+
     if(strcmp(topic, TOPIC_SESSION_ENERGY) == 0) {
         char *end = nullptr;
         const float value = strtof(buffer, &end);
@@ -369,14 +388,19 @@ void update_display_from_pending_data()
     }
 
     float effective_current = current_received ? pending_current_amps : 0.0f;
+    const char *effective_phase = charge_phase_received ? pending_charge_phase : "keine Ladung";
     if(displayed_wallbox_status == 0 || displayed_wallbox_status == 3) {
         effective_current = 0.0f;
+        effective_phase = "keine Ladung";
     }
 
-    if(effective_current != displayed_current_amps) {
+    if(effective_current != displayed_current_amps ||
+       strcmp(effective_phase, displayed_charge_phase) != 0) {
         displayed_current_amps = effective_current;
-        set_current_label(displayed_current_amps);
-        Serial.printf("Display Ladestrom aktualisiert: %.1f A\n", displayed_current_amps);
+        snprintf(displayed_charge_phase, sizeof(displayed_charge_phase), "%s", effective_phase);
+        set_current_phase_label(displayed_current_amps, displayed_charge_phase);
+        Serial.printf("Display Ladestrom/Phase aktualisiert: %.0f A / %s\n",
+                      displayed_current_amps, displayed_charge_phase);
     }
 
     const float effective_session_energy = session_energy_received ? pending_session_energy_kwh : 0.0f;
@@ -386,7 +410,7 @@ void update_display_from_pending_data()
         Serial.printf("Display Ladeenergie aktualisiert: %.3f kWh\n", displayed_session_energy_kwh);
     }
 
-    const char *effective_charge_time = charge_time_received ? pending_charge_time : "--:-- h";
+    const char *effective_charge_time = charge_time_received ? pending_charge_time : "--.-- h";
     if(strcmp(effective_charge_time, displayed_charge_time) != 0) {
         snprintf(displayed_charge_time, sizeof(displayed_charge_time), "%s", effective_charge_time);
         lv_label_set_text(ui_ChargeTimeLabel, displayed_charge_time);
@@ -453,11 +477,13 @@ void mqtt_service()
             mqtt.subscribe(TOPIC_STATUS, 0);
             mqtt.subscribe(TOPIC_POWER, 0);
             mqtt.subscribe(TOPIC_CURRENT, 0);
+            mqtt.subscribe(TOPIC_CHARGE_PHASE, 0);
             mqtt.subscribe(TOPIC_SESSION_ENERGY, 0);
             mqtt.subscribe(TOPIC_CHARGE_TIME, 0);
             Serial.printf("MQTT subscribe: %s\n", TOPIC_STATUS);
             Serial.printf("MQTT subscribe: %s\n", TOPIC_POWER);
             Serial.printf("MQTT subscribe: %s\n", TOPIC_CURRENT);
+            Serial.printf("MQTT subscribe: %s\n", TOPIC_CHARGE_PHASE);
             Serial.printf("MQTT subscribe: %s\n", TOPIC_SESSION_ENERGY);
             Serial.printf("MQTT subscribe: %s\n", TOPIC_CHARGE_TIME);
             publish_presence();
@@ -538,9 +564,9 @@ void setup()
     lv_label_set_text(ui_HumiLabel, "MQTT WARTET");
     setup_power_display();
     set_power_label(0.0f);
-    set_current_label(0.0f);
+    set_current_phase_label(0.0f, "keine Ladung");
     set_session_energy_label(0.0f);
-    lv_label_set_text(ui_ChargeTimeLabel, "--:-- h");
+    lv_label_set_text(ui_ChargeTimeLabel, "--.-- h");
 
     mqtt.setServer(MQTT_HOST, MQTT_PORT);
     mqtt.setCallback(mqtt_callback);
