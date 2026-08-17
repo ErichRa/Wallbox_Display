@@ -113,6 +113,42 @@ void i2c_scan(const char *label)
     Serial.println();
 }
 
+void gt911_diagnostics()
+{
+    Serial.println();
+    Serial.println("=== GT911 diagnostics ===");
+
+    Serial.println("Running touch_init() reset sequence ...");
+    touch_init();
+    Serial.println("touch_init() done");
+
+    i2c_scan("after touch_init()");
+
+    uint8_t product_id[4] = {0, 0, 0, 0};
+    Serial.println("Reading GT911 product ID at 0x8140 ...");
+    if(gt911_read(0x8140, product_id, sizeof(product_id))) {
+        Serial.printf("GT911 product ID raw: %02X %02X %02X %02X\n",
+                      product_id[0], product_id[1], product_id[2], product_id[3]);
+        Serial.printf("GT911 product ID text: %c%c%c%c\n",
+                      product_id[0], product_id[1], product_id[2], product_id[3]);
+    }
+    else {
+        Serial.println("GT911 product ID read FAILED");
+    }
+
+    uint8_t status = 0;
+    Serial.println("Reading GT911 status at 0x814E ...");
+    if(gt911_read(GT911_POINT_INFO, &status, 1)) {
+        Serial.printf("GT911 status: 0x%02X\n", status);
+    }
+    else {
+        Serial.println("GT911 status read FAILED");
+    }
+
+    Serial.println("=== GT911 diagnostics done ===");
+    Serial.println();
+}
+
 void display_flush(lv_display_t *display, const lv_area_t *area, uint8_t *pixel_map)
 {
     (void)area;
@@ -235,11 +271,11 @@ void setup()
     delay(200);
 
     i2c_scan("after lcd.begin()");
+    gt911_diagnostics();
 
     // DIAGNOSTIC MODE:
-    // touch_init() and LVGL touch polling are intentionally disabled.
-    // This prevents GT911 traffic from flooding the Serial Monitor while
-    // we isolate whether lcd.begin() changes the I2C bus state.
+    // LVGL touch polling is intentionally disabled. Only the one-shot
+    // diagnostics above talk to the GT911 after touch_init().
 
     lv_init();
     lv_tick_set_cb(tick_get);
