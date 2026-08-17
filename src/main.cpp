@@ -113,6 +113,42 @@ void i2c_scan(const char *label)
     Serial.println();
 }
 
+bool gt911_read_with_stop(uint16_t reg, uint8_t *data, size_t size)
+{
+    Wire1.beginTransmission(GT911_ADDRESS);
+    Wire1.write(static_cast<uint8_t>(reg >> 8));
+    Wire1.write(static_cast<uint8_t>(reg));
+
+    const uint8_t tx_error = Wire1.endTransmission(true);
+    if(tx_error != 0) {
+        Serial.printf("STOP read: endTransmission error=%u at reg 0x%04X\n", tx_error, reg);
+        return false;
+    }
+
+    const size_t received = Wire1.requestFrom(GT911_ADDRESS, size, true);
+    if(received != size) {
+        Serial.printf("STOP read: requested=%u received=%u at reg 0x%04X\n",
+                      static_cast<unsigned>(size),
+                      static_cast<unsigned>(received),
+                      reg);
+        while(Wire1.available()) Wire1.read();
+        return false;
+    }
+
+    for(size_t index = 0; index < size; ++index) data[index] = Wire1.read();
+    return true;
+}
+
+void print_product_id(const char *method, const uint8_t *product_id)
+{
+    Serial.printf("%s product ID raw: %02X %02X %02X %02X\n",
+                  method,
+                  product_id[0], product_id[1], product_id[2], product_id[3]);
+    Serial.printf("%s product ID text: %c%c%c%c\n",
+                  method,
+                  product_id[0], product_id[1], product_id[2], product_id[3]);
+}
+
 void gt911_diagnostics()
 {
     Serial.println();
@@ -124,25 +160,57 @@ void gt911_diagnostics()
 
     i2c_scan("after touch_init()");
 
-    uint8_t product_id[4] = {0, 0, 0, 0};
-    Serial.println("Reading GT911 product ID at 0x8140 ...");
-    if(gt911_read(0x8140, product_id, sizeof(product_id))) {
-        Serial.printf("GT911 product ID raw: %02X %02X %02X %02X\n",
-                      product_id[0], product_id[1], product_id[2], product_id[3]);
-        Serial.printf("GT911 product ID text: %c%c%c%c\n",
-                      product_id[0], product_id[1], product_id[2], product_id[3]);
+    Serial.println("Reading GT911 product ID at 0x8140 with REPEATED START ...");
+    uint8_t product_repeated[4] = {0, 0, 0, 0};
+    if(gt911_read(0x8140, product_repeated, sizeof(product_repeated))) {
+        print_product_id("REPEATED", product_repeated);
     }
     else {
-        Serial.println("GT911 product ID read FAILED");
+        Serial.println("REPEATED product ID read FAILED");
     }
 
-    uint8_t status = 0;
-    Serial.println("Reading GT911 status at 0x814E ...");
-    if(gt911_read(GT911_POINT_INFO, &status, 1)) {
-        Serial.printf("GT911 status: 0x%02X\n", status);
+    delay(50);
+
+    Serial.println("Reading GT911 product ID at 0x8140 with STOP ...");
+    uint8_t product_stop[4] = {0, 0, 0, 0};
+    if(gt911_read_with_stop(0x8140, product_stop, sizeof(product_stop))) {
+        print_product_id("STOP", product_stop);
     }
     else {
-        Serial.println("GT911 status read FAILED");
+        Serial.println("STOP product ID read FAILED");
+    }
+
+    delay(50);
+
+    Serial.println("Reading GT911 status at 0x814E with REPEATED START ...");
+    uint8_t status_repeated = 0;
+    if(gt911_read(GT911_POINT_INFO, &status_repeated, 1)) {
+        Serial.printf("REPEATED status: 0x%02X\n", status_repeated);
+    }
+    else {
+        Serial.println("REPEATED status read FAILED");
+    }
+
+    delay(50);
+
+    Serial.println("Reading GT911 status at 0x814E with STOP ...");
+    uint8_t status_stop = 0;
+    if(gt911_read_with_stop(GT911_POINT_INFO, &status_stop, 1)) {
+        Serial.printf("STOP status: 0x%02X\n", status_stop);
+    }
+    else {
+        Serial.println("STOP status read FAILED");
+    }
+
+    delay(50);
+
+    Serial.println("Reading GT911 config version at 0x8047 with STOP ...");
+    uint8_t config_version = 0;
+    if(gt911_read_with_stop(0x8047, &config_version, 1)) {
+        Serial.printf("STOP config version: 0x%02X\n", config_version);
+    }
+    else {
+        Serial.println("STOP config version read FAILED");
     }
 
     Serial.println("=== GT911 diagnostics done ===");
