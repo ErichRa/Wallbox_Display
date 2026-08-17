@@ -74,7 +74,6 @@ public:
 LGFX lcd;
 #include "touch.h"
 
-// Requested START/STOP state, changed by ui_events.c.
 int led = 0;
 
 namespace
@@ -89,12 +88,14 @@ uint32_t last_wifi_try = 0;
 uint32_t last_mqtt_try = 0;
 int last_led_sent = -1;
 
-// MQTT callbacks only update pending data. LVGL is updated from loop().
 int pending_wallbox_status = -1;
 int displayed_wallbox_status = -2;
 float pending_power_watts = 0.0f;
 float displayed_power_watts = -1.0f;
 bool power_received = false;
+
+lv_obj_t *power_decimal_label = nullptr;
+lv_obj_t *power_fraction_label = nullptr;
 lv_obj_t *power_unit_label = nullptr;
 
 uint32_t tick_get()
@@ -123,54 +124,81 @@ void touchpad_read(lv_indev_t *indev, lv_indev_data_t *data)
     }
 }
 
+static lv_obj_t *create_power_part(lv_obj_t *parent,
+                                   const char *text,
+                                   lv_coord_t x,
+                                   lv_coord_t y,
+                                   lv_coord_t width,
+                                   const lv_font_t *font,
+                                   lv_color_t color,
+                                   lv_text_align_t align)
+{
+    lv_obj_t *label = lv_label_create(parent);
+    lv_label_set_text(label, text);
+    lv_obj_set_pos(label, x, y);
+    lv_obj_set_width(label, width);
+    lv_label_set_long_mode(label, LV_LABEL_LONG_CLIP);
+    lv_obj_set_style_text_font(label, font, LV_PART_MAIN);
+    lv_obj_set_style_text_color(label, color, LV_PART_MAIN);
+    lv_obj_set_style_text_align(label, align, LV_PART_MAIN);
+    return label;
+}
+
 void setup_power_display()
 {
-    // Bestehende Position und Gesamtbreite des von SquareLine erzeugten Labels
-    // als festen Anzeigebereich weiterverwenden.
     lv_obj_update_layout(ui_TempLabel);
 
     lv_obj_t *parent = lv_obj_get_parent(ui_TempLabel);
     const lv_coord_t x = lv_obj_get_x(ui_TempLabel);
     const lv_coord_t y = lv_obj_get_y(ui_TempLabel);
-    const lv_coord_t total_width = lv_obj_get_width(ui_TempLabel);
     const lv_font_t *font = lv_obj_get_style_text_font(ui_TempLabel, LV_PART_MAIN);
     const lv_color_t color = lv_obj_get_style_text_color(ui_TempLabel, LV_PART_MAIN);
 
-    power_unit_label = lv_label_create(parent);
-    lv_label_set_text(power_unit_label, "kW");
-    lv_obj_set_style_text_font(power_unit_label, font, LV_PART_MAIN);
-    lv_obj_set_style_text_color(power_unit_label, color, LV_PART_MAIN);
-    lv_obj_update_layout(power_unit_label);
-
-    const lv_coord_t unit_width = lv_obj_get_width(power_unit_label);
+    // Feste Felder: Ganzzahl | Komma | zwei Nachkommastellen | Einheit.
+    // Dadurch bleiben Komma und kW pixelgenau an derselben Position.
+    constexpr lv_coord_t integer_width = 72;
+    constexpr lv_coord_t comma_width = 16;
+    constexpr lv_coord_t fraction_width = 54;
     constexpr lv_coord_t gap = 6;
-    lv_coord_t number_width = total_width - unit_width - gap;
-    if(number_width < 1) number_width = 1;
+    constexpr lv_coord_t unit_width = 62;
 
-    // Zahl bekommt eine feste Breite und wird rechtsbuendig dargestellt.
-    // Dadurch bleibt die rechte Kante der Zahl immer an derselben Stelle.
-    lv_obj_set_width(ui_TempLabel, number_width);
     lv_obj_set_pos(ui_TempLabel, x, y);
+    lv_obj_set_width(ui_TempLabel, integer_width);
+    lv_label_set_long_mode(ui_TempLabel, LV_LABEL_LONG_CLIP);
     lv_obj_set_style_text_align(ui_TempLabel, LV_TEXT_ALIGN_RIGHT, LV_PART_MAIN);
 
-    // Die Einheit steht komplett unabhaengig vom proportionalen Zahlenfont.
-    lv_obj_set_pos(power_unit_label, x + number_width + gap, y);
+    power_decimal_label = create_power_part(parent, ",",
+                                             x + integer_width, y,
+                                             comma_width, font, color,
+                                             LV_TEXT_ALIGN_CENTER);
+
+    power_fraction_label = create_power_part(parent, "00",
+                                              x + integer_width + comma_width, y,
+                                              fraction_width, font, color,
+                                              LV_TEXT_ALIGN_LEFT);
+
+    power_unit_label = create_power_part(parent, "kW",
+                                          x + integer_width + comma_width + fraction_width + gap, y,
+                                          unit_width, font, color,
+                                          LV_TEXT_ALIGN_LEFT);
 }
 
 void set_power_label(float watts)
 {
     if(watts < 0.0f) watts = 0.0f;
 
-    char number[16];
-    snprintf(number, sizeof(number), "%6.2f", watts / 1000.0f);
+    // Leistung auf Hundertstel kW runden, dann Ganz- und Nachkommateil trennen.
+    const uint32_t centi_kw = static_cast<uint32_t>((watts + 5.0f) / 10.0f);
+    const uint32_t whole = centi_kw / 100U;
+    const uint32_t fraction = centi_kw % 100U;
 
-    const size_t len = strlen(number);
-    for(size_t i = 0; i < len; ++i) {
-        if(number[i] == '.') number[i] = ',';
-    }
+    char whole_text[8];
+    char fraction_text[3];
+    snprintf(whole_text, sizeof(whole_text), "%lu", static_cast<unsigned long>(whole));
+    snprintf(fraction_text, sizeof(fraction_text), "%02lu", static_cast<unsigned long>(fraction));
 
-    // Nur die Zahl aktualisieren. "kW" ist ein separates, fest positioniertes Label.
-    lv_label_set_text(ui_TempLabel, number);
+    lv_label_set_text(ui_TempLabel, whole_text);
+    lv_label_set_text(power_fraction_label, fraction_text);
 }
 
 void set_wallbox_status(int status)
@@ -179,94 +207,31 @@ void set_wallbox_status(int status)
     const char *vehicle_text = "Fahrzeugstatus unbekannt";
 
     switch(status) {
-        case 0:
-            main_text = "BEREIT";
-            vehicle_text = "Fahrzeug nicht verbunden";
-            break;
-        case 1:
-            main_text = "VERBUNDEN";
-            vehicle_text = "Fahrzeug verbunden";
-            break;
-        case 2:
-            main_text = "LADEN";
-            vehicle_text = "Fahrzeug wird geladen";
-            break;
-        case 3:
-            main_text = "GELADEN";
-            vehicle_text = "Ladevorgang beendet";
-            break;
-        case 4:
-            main_text = "WARTE AUF SONNE";
-            vehicle_text = "Fahrzeug verbunden";
-            break;
-        case 5:
-            main_text = "RFID ERFORDERLICH";
-            vehicle_text = "Fahrzeug verbunden";
-            break;
-        case 6:
-            main_text = "WARTE AUF START";
-            vehicle_text = "Fahrzeug verbunden";
-            break;
-        case 7:
-            main_text = "BATTERIE ZU LEER";
-            vehicle_text = "Laden wartet";
-            break;
-        case 8:
-            main_text = "ERDUNGSFEHLER";
-            vehicle_text = "Wallbox-Fehler";
-            break;
-        case 9:
-            main_text = "KONTAKTFEHLER";
-            vehicle_text = "Wallbox-Fehler";
-            break;
-        case 10:
-            main_text = "CP-FEHLER";
-            vehicle_text = "Wallbox-Fehler";
-            break;
-        case 11:
-            main_text = "FEHLERSTROM";
-            vehicle_text = "Wallbox-Fehler";
-            break;
-        case 12:
-            main_text = "UNTERSPANNUNG";
-            vehicle_text = "Wallbox-Fehler";
-            break;
-        case 13:
-            main_text = "UEBERSPANNUNG";
-            vehicle_text = "Wallbox-Fehler";
-            break;
-        case 14:
-            main_text = "UEBERHITZUNG";
-            vehicle_text = "Wallbox-Fehler";
-            break;
+        case 0:  main_text = "BEREIT"; vehicle_text = "Fahrzeug nicht verbunden"; break;
+        case 1:  main_text = "VERBUNDEN"; vehicle_text = "Fahrzeug verbunden"; break;
+        case 2:  main_text = "LADEN"; vehicle_text = "Fahrzeug wird geladen"; break;
+        case 3:  main_text = "GELADEN"; vehicle_text = "Ladevorgang beendet"; break;
+        case 4:  main_text = "WARTE AUF SONNE"; vehicle_text = "Fahrzeug verbunden"; break;
+        case 5:  main_text = "RFID ERFORDERLICH"; vehicle_text = "Fahrzeug verbunden"; break;
+        case 6:  main_text = "WARTE AUF START"; vehicle_text = "Fahrzeug verbunden"; break;
+        case 7:  main_text = "BATTERIE ZU LEER"; vehicle_text = "Laden wartet"; break;
+        case 8:  main_text = "ERDUNGSFEHLER"; vehicle_text = "Wallbox-Fehler"; break;
+        case 9:  main_text = "KONTAKTFEHLER"; vehicle_text = "Wallbox-Fehler"; break;
+        case 10: main_text = "CP-FEHLER"; vehicle_text = "Wallbox-Fehler"; break;
+        case 11: main_text = "FEHLERSTROM"; vehicle_text = "Wallbox-Fehler"; break;
+        case 12: main_text = "UNTERSPANNUNG"; vehicle_text = "Wallbox-Fehler"; break;
+        case 13: main_text = "UEBERSPANNUNG"; vehicle_text = "Wallbox-Fehler"; break;
+        case 14: main_text = "UEBERHITZUNG"; vehicle_text = "Wallbox-Fehler"; break;
         case 15:
         case 16:
         case 17:
         case 18:
-        case 19:
-            main_text = "RESERVIERT";
-            vehicle_text = "Wallbox-Status reserviert";
-            break;
-        case 20:
-            main_text = "LADELIMIT";
-            vehicle_text = "Fahrzeug verbunden";
-            break;
-        case 21:
-            main_text = "STARTE LADUNG";
-            vehicle_text = "Fahrzeug verbunden";
-            break;
-        case 22:
-            main_text = "WECHSLE AUF 3 PHASEN";
-            vehicle_text = "Fahrzeug verbunden";
-            break;
-        case 23:
-            main_text = "WECHSLE AUF 1 PHASE";
-            vehicle_text = "Fahrzeug verbunden";
-            break;
-        case 24:
-            main_text = "BEENDE LADUNG";
-            vehicle_text = "Fahrzeug verbunden";
-            break;
+        case 19: main_text = "RESERVIERT"; vehicle_text = "Wallbox-Status reserviert"; break;
+        case 20: main_text = "LADELIMIT"; vehicle_text = "Fahrzeug verbunden"; break;
+        case 21: main_text = "STARTE LADUNG"; vehicle_text = "Fahrzeug verbunden"; break;
+        case 22: main_text = "WECHSLE AUF 3 PHASEN"; vehicle_text = "Fahrzeug verbunden"; break;
+        case 23: main_text = "WECHSLE AUF 1 PHASE"; vehicle_text = "Fahrzeug verbunden"; break;
+        case 24: main_text = "BEENDE LADUNG"; vehicle_text = "Fahrzeug verbunden"; break;
     }
 
     lv_label_set_text(ui_HumiLabel, main_text);
@@ -293,13 +258,11 @@ void mqtt_callback(char *topic, byte *payload, unsigned int length)
     if(strcmp(topic, TOPIC_STATUS) == 0) {
         char *end = nullptr;
         const long value = strtol(buffer, &end, 10);
-
         if(end == buffer || *end != '\0' || value < 0 || value > 24) {
             Serial.printf("MQTT Status ungueltig: %s\n", buffer);
             pending_wallbox_status = -1;
             return;
         }
-
         Serial.printf("MQTT RX [%s] = %ld\n", topic, value);
         pending_wallbox_status = static_cast<int>(value);
         return;
@@ -308,12 +271,10 @@ void mqtt_callback(char *topic, byte *payload, unsigned int length)
     if(strcmp(topic, TOPIC_POWER) == 0) {
         char *end = nullptr;
         const float value = strtof(buffer, &end);
-
         if(end == buffer || *end != '\0' || value < 0.0f) {
             Serial.printf("MQTT Power ungueltig: %s\n", buffer);
             return;
         }
-
         Serial.printf("MQTT RX [%s] = %.1f W\n", topic, value);
         pending_power_watts = value;
         power_received = true;
@@ -330,9 +291,6 @@ void update_display_from_pending_data()
     }
 
     float effective_power = power_received ? pending_power_watts : 0.0f;
-
-    // Die Wallbox liefert im Stillstand keinen Power-Wert. Alte Werte deshalb
-    // bei BEREIT und GELADEN sicher auf 0,00 kW zuruecksetzen.
     if(displayed_wallbox_status == 0 || displayed_wallbox_status == 3) {
         effective_power = 0.0f;
     }
@@ -391,20 +349,11 @@ void mqtt_service()
 
         bool ok = false;
         if(strlen(MQTT_USER) > 0) {
-            ok = mqtt.connect(MQTT_CLIENT_ID,
-                              MQTT_USER,
-                              MQTT_PASSWORD,
-                              TOPIC_ONLINE,
-                              0,
-                              true,
-                              "0");
+            ok = mqtt.connect(MQTT_CLIENT_ID, MQTT_USER, MQTT_PASSWORD,
+                              TOPIC_ONLINE, 0, true, "0");
         }
         else {
-            ok = mqtt.connect(MQTT_CLIENT_ID,
-                              TOPIC_ONLINE,
-                              0,
-                              true,
-                              "0");
+            ok = mqtt.connect(MQTT_CLIENT_ID, TOPIC_ONLINE, 0, true, "0");
         }
 
         if(ok) {
@@ -447,8 +396,6 @@ void setup()
     Serial.begin(115200);
     delay(300);
 
-    // CrowPanel V3.0: GPIO19/20 are shared with the ESP32-S3 USB pads.
-    // The dedicated workaround releases them before starting GT911 I2C.
     crowpanel_release_usb_pads_for_i2c(TOUCH_SDA, TOUCH_SCL);
     delay(10);
 
