@@ -154,31 +154,40 @@ void setup_power_display()
     const lv_font_t *font = lv_obj_get_style_text_font(ui_TempLabel, LV_PART_MAIN);
     const lv_color_t color = lv_obj_get_style_text_color(ui_TempLabel, LV_PART_MAIN);
 
-    // Feste Felder: Ganzzahl | Komma | zwei Nachkommastellen | Einheit.
-    // Dadurch bleiben Komma und kW pixelgenau an derselben Position.
+    // Das Komma ist der feste Anker der Anzeige:
+    // Vorkomma endet rechtsbuendig direkt am Komma,
+    // Nachkomma beginnt linksbuendig direkt nach dem Komma.
     constexpr lv_coord_t integer_width = 72;
-    constexpr lv_coord_t comma_width = 16;
     constexpr lv_coord_t fraction_width = 54;
-    constexpr lv_coord_t gap = 6;
+    constexpr lv_coord_t unit_gap = 6;
     constexpr lv_coord_t unit_width = 62;
+
+    const lv_coord_t comma_x = x + integer_width;
 
     lv_obj_set_pos(ui_TempLabel, x, y);
     lv_obj_set_width(ui_TempLabel, integer_width);
     lv_label_set_long_mode(ui_TempLabel, LV_LABEL_LONG_CLIP);
     lv_obj_set_style_text_align(ui_TempLabel, LV_TEXT_ALIGN_RIGHT, LV_PART_MAIN);
 
-    power_decimal_label = create_power_part(parent, ",",
-                                             x + integer_width, y,
-                                             comma_width, font, color,
-                                             LV_TEXT_ALIGN_CENTER);
+    // Komma ohne kuenstliches Feld: seine echte Glyphenbreite bestimmt nur,
+    // wo der Nachkommateil beginnt. Die X-Position des Kommas bleibt absolut fest.
+    power_decimal_label = lv_label_create(parent);
+    lv_label_set_text(power_decimal_label, ",");
+    lv_obj_set_style_text_font(power_decimal_label, font, LV_PART_MAIN);
+    lv_obj_set_style_text_color(power_decimal_label, color, LV_PART_MAIN);
+    lv_obj_set_pos(power_decimal_label, comma_x, y);
+    lv_obj_update_layout(power_decimal_label);
+
+    const lv_coord_t comma_width = lv_obj_get_width(power_decimal_label);
+    const lv_coord_t fraction_x = comma_x + comma_width;
 
     power_fraction_label = create_power_part(parent, "00",
-                                              x + integer_width + comma_width, y,
+                                              fraction_x, y,
                                               fraction_width, font, color,
                                               LV_TEXT_ALIGN_LEFT);
 
     power_unit_label = create_power_part(parent, "kW",
-                                          x + integer_width + comma_width + fraction_width + gap, y,
+                                          fraction_x + fraction_width + unit_gap, y,
                                           unit_width, font, color,
                                           LV_TEXT_ALIGN_LEFT);
 }
