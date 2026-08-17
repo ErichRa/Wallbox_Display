@@ -188,6 +188,18 @@ void wifi_service()
     WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
 }
 
+void publish_presence()
+{
+    const String ip = WiFi.localIP().toString();
+    const String rssi = String(WiFi.RSSI());
+
+    mqtt.publish(TOPIC_ONLINE, "1", true);
+    mqtt.publish(TOPIC_IP, ip.c_str(), true);
+    mqtt.publish(TOPIC_RSSI, rssi.c_str(), true);
+
+    Serial.printf("WLAN verbunden: IP=%s RSSI=%s dBm\n", ip.c_str(), rssi.c_str());
+}
+
 void mqtt_service()
 {
     if(WiFi.status() != WL_CONNECTED) return;
@@ -201,15 +213,26 @@ void mqtt_service()
 
         bool ok = false;
         if(strlen(MQTT_USER) > 0) {
-            ok = mqtt.connect(MQTT_CLIENT_ID, MQTT_USER, MQTT_PASSWORD);
+            ok = mqtt.connect(MQTT_CLIENT_ID,
+                              MQTT_USER,
+                              MQTT_PASSWORD,
+                              TOPIC_ONLINE,
+                              0,
+                              true,
+                              "0");
         }
         else {
-            ok = mqtt.connect(MQTT_CLIENT_ID);
+            ok = mqtt.connect(MQTT_CLIENT_ID,
+                              TOPIC_ONLINE,
+                              0,
+                              true,
+                              "0");
         }
 
         if(ok) {
             Serial.println("MQTT verbunden");
             mqtt.subscribe(TOPIC_STATUS);
+            publish_presence();
         }
         else {
             Serial.printf("MQTT Fehler rc=%d\n", mqtt.state());
