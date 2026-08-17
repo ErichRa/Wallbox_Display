@@ -10,10 +10,9 @@
 #include <lgfx/v1/platforms/esp32s3/Bus_RGB.hpp>
 #include <lgfx/v1/platforms/esp32s3/Panel_RGB.hpp>
 #include <lvgl.h>
-#include "driver/gpio.h"
-#include "soc/usb_serial_jtag_struct.h"
 #include "ui.h"
 #include "config.h"
+#include "crowpanel_i2c_fix.h"
 
 class LGFX : public lgfx::LGFX_Device
 {
@@ -94,23 +93,6 @@ int last_led_sent = -1;
 uint32_t tick_get()
 {
     return millis();
-}
-
-void release_usb_pads_for_i2c()
-{
-    // ESP32-S3 uses GPIO19/20 as USB D-/D+ by default. The CrowPanel uses
-    // the same pads for GT911 I2C, so disable the USB pad function before
-    // Wire1 claims them.
-    USB_SERIAL_JTAG.conf0.dp_pullup = 0;
-    USB_SERIAL_JTAG.conf0.usb_pad_enable = 0;
-    USB_SERIAL_JTAG.conf0.pad_pull_override = 1;
-
-    gpio_reset_pin(static_cast<gpio_num_t>(TOUCH_SDA));
-    gpio_reset_pin(static_cast<gpio_num_t>(TOUCH_SCL));
-    gpio_set_pull_mode(static_cast<gpio_num_t>(TOUCH_SDA), GPIO_PULLUP_ONLY);
-    gpio_set_pull_mode(static_cast<gpio_num_t>(TOUCH_SCL), GPIO_PULLUP_ONLY);
-
-    Serial.println("I2C: USB Serial/JTAG pads released from GPIO19/20");
 }
 
 void display_flush(lv_display_t *display, const lv_area_t *area, uint8_t *pixel_map)
@@ -264,10 +246,9 @@ void setup()
     Serial.begin(115200);
     delay(300);
 
-    // GPIO38 is the GT911 interrupt line on this board. It must not be
-    // configured as the relay output used by the original Elecrow demo.
-
-    release_usb_pads_for_i2c();
+    // CrowPanel V3.0: GPIO19/20 are shared with the ESP32-S3 USB pads.
+    // The dedicated workaround releases them before starting GT911 I2C.
+    crowpanel_release_usb_pads_for_i2c(TOUCH_SDA, TOUCH_SCL);
     delay(10);
 
     Wire1.begin(TOUCH_SDA, TOUCH_SCL);
