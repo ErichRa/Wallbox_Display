@@ -88,6 +88,8 @@ PubSubClient mqtt(wifi_client);
 uint32_t last_wifi_try = 0;
 uint32_t last_mqtt_try = 0;
 int last_led_sent = -1;
+int pending_wallbox_status = -1;
+int displayed_wallbox_status = -2;
 
 uint32_t tick_get()
 {
@@ -229,12 +231,25 @@ void mqtt_callback(char *topic, byte *payload, unsigned int length)
 
     if(end == buffer || *end != '\0' || value < 0 || value > 24) {
         Serial.printf("MQTT Status ungueltig: %s\n", buffer);
-        set_wallbox_status(-1);
+        pending_wallbox_status = -1;
         return;
     }
 
     Serial.printf("MQTT RX [%s] = %ld\n", topic, value);
-    set_wallbox_status(static_cast<int>(value));
+
+    // Im MQTT-Callback niemals direkt auf LVGL zugreifen.
+    // Nur den neuen Status vormerken; die Anzeige wird im Hauptloop aktualisiert.
+    pending_wallbox_status = static_cast<int>(value);
+}
+
+void update_display_from_pending_data()
+{
+    if(pending_wallbox_status == displayed_wallbox_status) return;
+
+    displayed_wallbox_status = pending_wallbox_status;
+    set_wallbox_status(displayed_wallbox_status);
+
+    Serial.printf("Display Status aktualisiert: %d\n", displayed_wallbox_status);
 }
 
 void wifi_service()
@@ -396,6 +411,7 @@ void loop()
     wifi_service();
     mqtt_service();
     publish_button_command();
+    update_display_from_pending_data();
 
     lv_timer_handler();
     delay(10);
