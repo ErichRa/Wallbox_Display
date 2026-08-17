@@ -93,6 +93,9 @@ int displayed_wallbox_status = -2;
 float pending_power_watts = 0.0f;
 float displayed_power_watts = -1.0f;
 bool power_received = false;
+float pending_current_amps = 0.0f;
+float displayed_current_amps = -1.0f;
+bool current_received = false;
 
 lv_obj_t *power_decimal_label = nullptr;
 lv_obj_t *power_fraction_label = nullptr;
@@ -154,9 +157,6 @@ void setup_power_display()
     const lv_font_t *font = lv_obj_get_style_text_font(ui_TempLabel, LV_PART_MAIN);
     const lv_color_t color = lv_obj_get_style_text_color(ui_TempLabel, LV_PART_MAIN);
 
-    // Das Komma ist der feste Anker der Anzeige:
-    // Vorkomma endet rechtsbuendig direkt am Komma,
-    // Nachkomma beginnt linksbuendig direkt nach dem Komma.
     constexpr lv_coord_t integer_width = 72;
     constexpr lv_coord_t fraction_width = 54;
     constexpr lv_coord_t unit_gap = 6;
@@ -169,8 +169,6 @@ void setup_power_display()
     lv_label_set_long_mode(ui_TempLabel, LV_LABEL_LONG_CLIP);
     lv_obj_set_style_text_align(ui_TempLabel, LV_TEXT_ALIGN_RIGHT, LV_PART_MAIN);
 
-    // Komma ohne kuenstliches Feld: seine echte Glyphenbreite bestimmt nur,
-    // wo der Nachkommateil beginnt. Die X-Position des Kommas bleibt absolut fest.
     power_decimal_label = lv_label_create(parent);
     lv_label_set_text(power_decimal_label, ",");
     lv_obj_set_style_text_font(power_decimal_label, font, LV_PART_MAIN);
@@ -196,7 +194,6 @@ void set_power_label(float watts)
 {
     if(watts < 0.0f) watts = 0.0f;
 
-    // Leistung auf Hundertstel kW runden, dann Ganz- und Nachkommateil trennen.
     const uint32_t centi_kw = static_cast<uint32_t>((watts + 5.0f) / 10.0f);
     const uint32_t whole = centi_kw / 100U;
     const uint32_t fraction = centi_kw % 100U;
@@ -208,6 +205,15 @@ void set_power_label(float watts)
 
     lv_label_set_text(ui_TempLabel, whole_text);
     lv_label_set_text(power_fraction_label, fraction_text);
+}
+
+void set_current_label(float amps)
+{
+    if(amps < 0.0f) amps = 0.0f;
+
+    char text[16];
+    snprintf(text, sizeof(text), "%.1f A", amps);
+    lv_label_set_text(ui_VoltageLabel, text);
 }
 
 void set_wallbox_status(int status)
@@ -289,6 +295,19 @@ void mqtt_callback(char *topic, byte *payload, unsigned int length)
         power_received = true;
         return;
     }
+
+    if(strcmp(topic, TOPIC_CURRENT) == 0) {
+        char *end = nullptr;
+        const float value = strtof(buffer, &end);
+        if(end == buffer || *end != '\0' || value < 0.0f) {
+            Serial.printf("MQTT Ladestrom ungueltig: %s\n", buffer);
+            return;
+        }
+        Serial.printf("MQTT RX [%s] = %.1f A\n", topic, value);
+        pending_current_amps = value;
+        current_received = true;
+        return;
+    }
 }
 
 void update_display_from_pending_data()
@@ -308,6 +327,17 @@ void update_display_from_pending_data()
         displayed_power_watts = effective_power;
         set_power_label(displayed_power_watts);
         Serial.printf("Display Power aktualisiert: %.1f W\n", displayed_power_watts);
+    }
+
+    float effective_current = current_received ? pending_current_amps : 0.0f;
+    if(displayed_wallbox_status == 0 || displayed_wallbox_status == 3) {
+        effective_current = 0.0f;
+    }
+
+    if(effective_current != displayed_current_amps) {
+        displayed_current_amps = effective_current;
+        set_current_label(displayed_current_amps);
+        Serial.printf("Display Ladestrom aktualisiert: %.1f A\n", displayed_current_amps);
     }
 }
 
@@ -369,8 +399,10 @@ void mqtt_service()
             Serial.println("MQTT verbunden");
             mqtt.subscribe(TOPIC_STATUS, 0);
             mqtt.subscribe(TOPIC_POWER, 0);
+            mqtt.subscribe(TOPIC_CURRENT, 0);
             Serial.printf("MQTT subscribe: %s\n", TOPIC_STATUS);
             Serial.printf("MQTT subscribe: %s\n", TOPIC_POWER);
+            Serial.printf("MQTT subscribe: %s\n", TOPIC_CURRENT);
             publish_presence();
         }
         else {
@@ -449,6 +481,7 @@ void setup()
     lv_label_set_text(ui_HumiLabel, "MQTT WARTET");
     setup_power_display();
     set_power_label(0.0f);
+    set_current_label(0.0f);
 
     mqtt.setServer(MQTT_HOST, MQTT_PORT);
     mqtt.setCallback(mqtt_callback);
