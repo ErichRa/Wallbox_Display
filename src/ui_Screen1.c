@@ -94,6 +94,8 @@ void ui_Screen1_screen_init(void)
 
     ui_TempLabel = make_label(main_panel, "--.-- kW", 250, 27,
                               &lv_font_montserrat_40, COLOR_TEXT);
+    lv_obj_set_width(ui_TempLabel, 210);
+    lv_label_set_long_mode(ui_TempLabel, LV_LABEL_LONG_CLIP);
     ui_HumiLabel = make_label(main_panel, "BEREIT", 250, 87,
                               &lv_font_montserrat_28, COLOR_GREEN);
     ui_VehicleLabel = make_label(main_panel, "Fahrzeug nicht verbunden", 250, 136,
