@@ -4,6 +4,7 @@
  *--------------------------------------------------------------*/
 
 #include <WiFi.h>
+#include <WebServer.h>
 #include <PubSubClient.h>
 #include <LovyanGFX.hpp>
 #include <lgfx/v1/platforms/esp32s3/Bus_RGB.hpp>
@@ -84,9 +85,13 @@ constexpr uint32_t SCREEN_HEIGHT = 480;
 
 WiFiClient wifi_client;
 PubSubClient mqtt(wifi_client);
+WebServer web_server(80);
+bool web_server_started = false;
 uint32_t last_wifi_try = 0;
 uint32_t last_mqtt_try = 0;
 int last_led_sent = -1;
+
+lv_color_t *screen_frame_buffer = nullptr;
 
 int pending_wallbox_status = -1;
 int displayed_wallbox_status = -2;
@@ -134,6 +139,133 @@ void touchpad_read(lv_indev_t *indev, lv_indev_data_t *data)
         data->point.x = touch_last_x;
         data->point.y = touch_last_y;
     }
+}
+
+static void put_u16_le(uint8_t *buffer, size_t offset, uint16_t value)
+{
+    buffer[offset] = static_cast<uint8_t>(value & 0xFFU);
+    buffer[offset + 1] = static_cast<uint8_t>((value >> 8) & 0xFFU);
+}
+
+static void put_u32_le(uint8_t *buffer, size_t offset, uint32_t value)
+{
+    buffer[offset] = static_cast<uint8_t>(value & 0xFFU);
+    buffer[offset + 1] = static_cast<uint8_t>((value >> 8) & 0xFFU);
+    buffer[offset + 2] = static_cast<uint8_t>((value >> 16) & 0xFFU);
+    buffer[offset + 3] = static_cast<uint8_t>((value >> 24) & 0xFFU);
+}
+
+void handle_screenshot()
+{
+    if(screen_frame_buffer == nullptr) {
+        web_server.send(503, "text/plain", "Framebuffer nicht verfuegbar");
+        return;
+    }
+
+    constexpr uint32_t row_bytes = SCREEN_WIDTH * 3U;
+    constexpr uint32_t row_stride = (row_bytes + 3U) & ~3U;
+    constexpr uint32_t image_size = row_stride * SCREEN_HEIGHT;
+    constexpr uint32_t file_size = 54U + image_size;
+
+    uint8_t bmp_header[54] = {};
+    bmp_header[0] = 'B';
+    bmp_header[1] = 'M';
+    put_u32_le(bmp_header, 2, file_size);
+    put_u32_le(bmp_header, 10, 54U);
+    put_u32_le(bmp_header, 14, 40U);
+    put_u32_le(bmp_header, 18, SCREEN_WIDTH);
+    put_u32_le(bmp_header, 22, SCREEN_HEIGHT);
+    put_u16_le(bmp_header, 26, 1U);
+    put_u16_le(bmp_header, 28, 24U);
+    put_u32_le(bmp_header, 34, image_size);
+    put_u32_le(bmp_header, 38, 2835U);
+    put_u32_le(bmp_header, 42, 2835U);
+
+    WiFiClient client = web_server.client();
+    client.printf("HTTP/1.1 200 OK\r\n"
+                  "Content-Type: image/bmp\r\n"
+                  "Content-Disposition: inline; filename=wallbox-screen.bmp\r\n"
+                  "Content-Length: %lu\r\n"
+                  "Cache-Control: no-store, no-cache, must-revalidate\r\n"
+                  "Pragma: no-cache\r\n"
+                  "Connection: close\r\n\r\n",
+                  static_cast<unsigned long>(file_size));
+    client.write(bmp_header, sizeof(bmp_header));
+
+    static uint8_t line_buffer[row_stride];
+
+    // BMP speichert positive Hoehen von unten nach oben. Der LVGL-Framebuffer
+    // liegt zeilenweise von oben nach unten, deshalb werden die Zeilen umgekehrt.
+    for(int y = static_cast<int>(SCREEN_HEIGHT) - 1; y >= 0; --y) {
+        const uint16_t *source = reinterpret_cast<const uint16_t *>(screen_frame_buffer) +
+                                 static_cast<size_t>(y) * SCREEN_WIDTH;
+
+        for(uint32_t x = 0; x < SCREEN_WIDTH; ++x) {
+            const uint16_t rgb565 = source[x];
+            const uint8_t r5 = static_cast<uint8_t>((rgb565 >> 11) & 0x1FU);
+            const uint8_t g6 = static_cast<uint8_t>((rgb565 >> 5) & 0x3FU);
+            const uint8_t b5 = static_cast<uint8_t>(rgb565 & 0x1FU);
+
+            const uint8_t r8 = static_cast<uint8_t>((r5 << 3) | (r5 >> 2));
+            const uint8_t g8 = static_cast<uint8_t>((g6 << 2) | (g6 >> 4));
+            const uint8_t b8 = static_cast<uint8_t>((b5 << 3) | (b5 >> 2));
+
+            const size_t offset = static_cast<size_t>(x) * 3U;
+            line_buffer[offset] = b8;
+            line_buffer[offset + 1] = g8;
+            line_buffer[offset + 2] = r8;
+        }
+
+        for(uint32_t p = row_bytes; p < row_stride; ++p) {
+            line_buffer[p] = 0;
+        }
+
+        if(client.write(line_buffer, row_stride) != row_stride) {
+            Serial.println("Screenshot: Client-Verbindung abgebrochen");
+            break;
+        }
+        yield();
+    }
+
+    client.flush();
+    client.stop();
+    Serial.println("HTTP Screenshot ausgeliefert: /screenshot.bmp");
+}
+
+void setup_web_server()
+{
+    web_server.on("/", HTTP_GET, []() {
+        String page;
+        page.reserve(700);
+        page += F("<!doctype html><html><head><meta charset='utf-8'>");
+        page += F("<meta name='viewport' content='width=device-width,initial-scale=1'>");
+        page += F("<title>Wallbox Display</title></head><body style='font-family:sans-serif;background:#111;color:#eee;text-align:center'>");
+        page += F("<h2>Wallbox Display</h2><p><a style='color:#8cf' href='/screenshot.bmp'>Screenshot als BMP oeffnen</a></p>");
+        page += F("<img src='/screenshot.bmp' style='max-width:100%;height:auto;border:1px solid #555'>");
+        page += F("<p>Seite neu laden fuer einen aktuellen Screenshot.</p></body></html>");
+        web_server.sendHeader("Cache-Control", "no-store");
+        web_server.send(200, "text/html; charset=utf-8", page);
+    });
+
+    web_server.on("/screenshot.bmp", HTTP_GET, handle_screenshot);
+
+    web_server.onNotFound([]() {
+        web_server.send(404, "text/plain", "Nicht gefunden");
+    });
+}
+
+void web_service()
+{
+    if(WiFi.status() != WL_CONNECTED) return;
+
+    if(!web_server_started) {
+        web_server.begin();
+        web_server_started = true;
+        Serial.printf("HTTP Screenshot bereit: http://%s/screenshot.bmp\n",
+                      WiFi.localIP().toString().c_str());
+    }
+
+    web_server.handleClient();
 }
 
 static lv_obj_t *create_power_part(lv_obj_t *parent,
@@ -536,10 +668,10 @@ void setup()
     lv_tick_set_cb(tick_get);
     touch_init();
 
-    lv_color_t *frame_buffer_0 = reinterpret_cast<lv_color_t *>(lcd.bus.getFrameBuffer(0));
+    screen_frame_buffer = reinterpret_cast<lv_color_t *>(lcd.bus.getFrameBuffer(0));
 
-    Serial.printf("RGB single frame buffer: %p\n", frame_buffer_0);
-    if(frame_buffer_0 == nullptr) {
+    Serial.printf("RGB single frame buffer: %p\n", screen_frame_buffer);
+    if(screen_frame_buffer == nullptr) {
         Serial.println("RGB frame buffer allocation failed");
         return;
     }
@@ -548,7 +680,7 @@ void setup()
     lv_display_set_color_format(display, LV_COLOR_FORMAT_RGB565);
     lv_display_set_flush_cb(display, display_flush);
     lv_display_set_buffers(display,
-                           frame_buffer_0,
+                           screen_frame_buffer,
                            nullptr,
                            SCREEN_WIDTH * SCREEN_HEIGHT * sizeof(lv_color_t),
                            LV_DISPLAY_RENDER_MODE_DIRECT);
@@ -572,6 +704,7 @@ void setup()
     mqtt.setCallback(mqtt_callback);
     mqtt.setBufferSize(1024);
 
+    setup_web_server();
     wifi_service();
 }
 
@@ -579,6 +712,7 @@ void loop()
 {
     wifi_service();
     mqtt_service();
+    web_service();
     publish_button_command();
     update_display_from_pending_data();
 
