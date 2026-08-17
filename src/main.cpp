@@ -447,7 +447,7 @@ void setup()
                            frame_buffer_0,
                            nullptr,
                            SCREEN_WIDTH * SCREEN_HEIGHT * sizeof(lv_color_t),
-                           LV_DISPLAY_RENDER_MODE_FULL);
+                           LV_DISPLAY_RENDER_MODE_DIRECT);
 
     lv_indev_t *touchpad = lv_indev_create();
     lv_indev_set_type(touchpad, LV_INDEV_TYPE_POINTER);
