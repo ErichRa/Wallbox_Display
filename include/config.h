@@ -6,6 +6,7 @@
 
 // Node-RED -> CrowPanel
 #define TOPIC_STATUS         "wallbox/display/status"
+#define TOPIC_POWER          "wallbox/display/power"
 
 // CrowPanel -> Node-RED / MQTT Explorer
 #define TOPIC_ONLINE         "wallbox/display/online"
