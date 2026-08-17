@@ -95,6 +95,7 @@ int displayed_wallbox_status = -2;
 float pending_power_watts = 0.0f;
 float displayed_power_watts = -1.0f;
 bool power_received = false;
+lv_obj_t *power_unit_label = nullptr;
 
 uint32_t tick_get()
 {
@@ -122,22 +123,54 @@ void touchpad_read(lv_indev_t *indev, lv_indev_data_t *data)
     }
 }
 
+void setup_power_display()
+{
+    // Bestehende Position und Gesamtbreite des von SquareLine erzeugten Labels
+    // als festen Anzeigebereich weiterverwenden.
+    lv_obj_update_layout(ui_TempLabel);
+
+    lv_obj_t *parent = lv_obj_get_parent(ui_TempLabel);
+    const lv_coord_t x = lv_obj_get_x(ui_TempLabel);
+    const lv_coord_t y = lv_obj_get_y(ui_TempLabel);
+    const lv_coord_t total_width = lv_obj_get_width(ui_TempLabel);
+    const lv_font_t *font = lv_obj_get_style_text_font(ui_TempLabel, LV_PART_MAIN);
+    const lv_color_t color = lv_obj_get_style_text_color(ui_TempLabel, LV_PART_MAIN);
+
+    power_unit_label = lv_label_create(parent);
+    lv_label_set_text(power_unit_label, "kW");
+    lv_obj_set_style_text_font(power_unit_label, font, LV_PART_MAIN);
+    lv_obj_set_style_text_color(power_unit_label, color, LV_PART_MAIN);
+    lv_obj_update_layout(power_unit_label);
+
+    const lv_coord_t unit_width = lv_obj_get_width(power_unit_label);
+    constexpr lv_coord_t gap = 6;
+    lv_coord_t number_width = total_width - unit_width - gap;
+    if(number_width < 1) number_width = 1;
+
+    // Zahl bekommt eine feste Breite und wird rechtsbuendig dargestellt.
+    // Dadurch bleibt die rechte Kante der Zahl immer an derselben Stelle.
+    lv_obj_set_width(ui_TempLabel, number_width);
+    lv_obj_set_pos(ui_TempLabel, x, y);
+    lv_obj_set_style_text_align(ui_TempLabel, LV_TEXT_ALIGN_RIGHT, LV_PART_MAIN);
+
+    // Die Einheit steht komplett unabhaengig vom proportionalen Zahlenfont.
+    lv_obj_set_pos(power_unit_label, x + number_width + gap, y);
+}
+
 void set_power_label(float watts)
 {
     if(watts < 0.0f) watts = 0.0f;
 
     char number[16];
-    char text[24];
     snprintf(number, sizeof(number), "%6.2f", watts / 1000.0f);
 
-    size_t len = strlen(number);
+    const size_t len = strlen(number);
     for(size_t i = 0; i < len; ++i) {
-        text[i] = (number[i] == '.') ? ',' : number[i];
+        if(number[i] == '.') number[i] = ',';
     }
-    text[len] = '\0';
-    strncat(text, " kW", sizeof(text) - strlen(text) - 1);
 
-    lv_label_set_text(ui_TempLabel, text);
+    // Nur die Zahl aktualisieren. "kW" ist ein separates, fest positioniertes Label.
+    lv_label_set_text(ui_TempLabel, number);
 }
 
 void set_wallbox_status(int status)
@@ -458,6 +491,7 @@ void setup()
 
     ui_init();
     lv_label_set_text(ui_HumiLabel, "MQTT WARTET");
+    setup_power_display();
     set_power_label(0.0f);
 
     mqtt.setServer(MQTT_HOST, MQTT_PORT);
