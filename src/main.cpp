@@ -90,22 +90,34 @@ int last_led_sent = -1;
 
 uint32_t tick_get() { return millis(); }
 
+void i2c_scan(const char *label)
+{
+    Serial.println();
+    Serial.printf("=== I2C Scan: %s ===\n", label);
+
+    uint8_t found = 0;
+    for(uint8_t address = 1; address < 127; ++address) {
+        Wire1.beginTransmission(address);
+        const uint8_t error = Wire1.endTransmission();
+        if(error == 0) {
+            Serial.printf("I2C device found at 0x%02X", address);
+            if(address == PCA9557_ADDRESS) Serial.print("  [PCA9557]");
+            if(address == GT911_ADDRESS) Serial.print("  [GT911]");
+            Serial.println();
+            ++found;
+        }
+    }
+
+    if(found == 0) Serial.println("No I2C devices found");
+    Serial.printf("=== I2C Scan done: %u device(s) ===\n", found);
+    Serial.println();
+}
+
 void display_flush(lv_display_t *display, const lv_area_t *area, uint8_t *pixel_map)
 {
     (void)area;
     if(!lcd.bus.presentFrameBuffer(pixel_map)) Serial.println("LovyanGFX VSYNC frame switch timeout");
     lv_display_flush_ready(display);
-}
-
-void touchpad_read(lv_indev_t *indev, lv_indev_data_t *data)
-{
-    (void)indev;
-    data->state = LV_INDEV_STATE_RELEASED;
-    if(touch_touched()) {
-        data->state = LV_INDEV_STATE_PRESSED;
-        data->point.x = touch_last_x;
-        data->point.y = touch_last_y;
-    }
 }
 
 void set_power_label(float watts)
@@ -211,10 +223,10 @@ void setup()
     pinMode(RELAY_PIN, OUTPUT);
     digitalWrite(RELAY_PIN, LOW);
 
-    // Start I2C once and keep it active. Reinitializing Wire1 after lcd.begin()
-    // is intentionally avoided while isolating the GT911 INVALID_STATE issue.
     Wire1.begin(19, 20);
     Wire1.setClock(400000);
+
+    i2c_scan("before lcd.begin()");
 
     if(!lcd.begin()) {
         Serial.println("lcd.begin() failed");
@@ -222,9 +234,15 @@ void setup()
     }
     delay(200);
 
+    i2c_scan("after lcd.begin()");
+
+    // DIAGNOSTIC MODE:
+    // touch_init() and LVGL touch polling are intentionally disabled.
+    // This prevents GT911 traffic from flooding the Serial Monitor while
+    // we isolate whether lcd.begin() changes the I2C bus state.
+
     lv_init();
     lv_tick_set_cb(tick_get);
-    touch_init();
 
     lv_color_t *frame_buffer_0 = reinterpret_cast<lv_color_t *>(lcd.bus.getFrameBuffer(0));
     lv_color_t *frame_buffer_1 = reinterpret_cast<lv_color_t *>(lcd.bus.getFrameBuffer(1));
@@ -240,10 +258,6 @@ void setup()
     lv_display_set_buffers(display, frame_buffer_0, frame_buffer_1,
                            SCREEN_WIDTH * SCREEN_HEIGHT * sizeof(lv_color_t),
                            LV_DISPLAY_RENDER_MODE_FULL);
-
-    lv_indev_t *touchpad = lv_indev_create();
-    lv_indev_set_type(touchpad, LV_INDEV_TYPE_POINTER);
-    lv_indev_set_read_cb(touchpad, touchpad_read);
 
     pinMode(BACKLIGHT_PIN, OUTPUT);
     digitalWrite(BACKLIGHT_PIN, HIGH);
