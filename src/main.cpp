@@ -433,11 +433,10 @@ void setup()
     touch_init();
 
     lv_color_t *frame_buffer_0 = reinterpret_cast<lv_color_t *>(lcd.bus.getFrameBuffer(0));
-    lv_color_t *frame_buffer_1 = reinterpret_cast<lv_color_t *>(lcd.bus.getFrameBuffer(1));
 
-    Serial.printf("RGB frame buffers: %p, %p\n", frame_buffer_0, frame_buffer_1);
-    if(frame_buffer_0 == nullptr || frame_buffer_1 == nullptr) {
-        Serial.println("RGB double frame buffer allocation failed");
+    Serial.printf("RGB single frame buffer: %p\n", frame_buffer_0);
+    if(frame_buffer_0 == nullptr) {
+        Serial.println("RGB frame buffer allocation failed");
         return;
     }
 
@@ -446,7 +445,7 @@ void setup()
     lv_display_set_flush_cb(display, display_flush);
     lv_display_set_buffers(display,
                            frame_buffer_0,
-                           frame_buffer_1,
+                           nullptr,
                            SCREEN_WIDTH * SCREEN_HEIGHT * sizeof(lv_color_t),
                            LV_DISPLAY_RENDER_MODE_FULL);
 
