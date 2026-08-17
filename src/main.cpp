@@ -96,6 +96,9 @@ bool power_received = false;
 float pending_current_amps = 0.0f;
 float displayed_current_amps = -1.0f;
 bool current_received = false;
+float pending_session_energy_kwh = 0.0f;
+float displayed_session_energy_kwh = -1.0f;
+bool session_energy_received = false;
 
 lv_obj_t *power_decimal_label = nullptr;
 lv_obj_t *power_fraction_label = nullptr;
@@ -212,8 +215,17 @@ void set_current_label(float amps)
     if(amps < 0.0f) amps = 0.0f;
 
     char text[16];
-    snprintf(text, sizeof(text), "%.1f A", amps);
+    snprintf(text, sizeof(text), "%.0f A", amps);
     lv_label_set_text(ui_VoltageLabel, text);
+}
+
+void set_session_energy_label(float kwh)
+{
+    if(kwh < 0.0f) kwh = 0.0f;
+
+    char text[20];
+    snprintf(text, sizeof(text), "%.2f kWh", kwh);
+    lv_label_set_text(ui_EnergyTodayLabel, text);
 }
 
 void set_wallbox_status(int status)
@@ -308,6 +320,19 @@ void mqtt_callback(char *topic, byte *payload, unsigned int length)
         current_received = true;
         return;
     }
+
+    if(strcmp(topic, TOPIC_SESSION_ENERGY) == 0) {
+        char *end = nullptr;
+        const float value = strtof(buffer, &end);
+        if(end == buffer || *end != '\0' || value < 0.0f) {
+            Serial.printf("MQTT Ladeenergie ungueltig: %s\n", buffer);
+            return;
+        }
+        Serial.printf("MQTT RX [%s] = %.3f kWh\n", topic, value);
+        pending_session_energy_kwh = value;
+        session_energy_received = true;
+        return;
+    }
 }
 
 void update_display_from_pending_data()
@@ -338,6 +363,13 @@ void update_display_from_pending_data()
         displayed_current_amps = effective_current;
         set_current_label(displayed_current_amps);
         Serial.printf("Display Ladestrom aktualisiert: %.1f A\n", displayed_current_amps);
+    }
+
+    const float effective_session_energy = session_energy_received ? pending_session_energy_kwh : 0.0f;
+    if(effective_session_energy != displayed_session_energy_kwh) {
+        displayed_session_energy_kwh = effective_session_energy;
+        set_session_energy_label(displayed_session_energy_kwh);
+        Serial.printf("Display Ladeenergie aktualisiert: %.3f kWh\n", displayed_session_energy_kwh);
     }
 }
 
@@ -400,9 +432,11 @@ void mqtt_service()
             mqtt.subscribe(TOPIC_STATUS, 0);
             mqtt.subscribe(TOPIC_POWER, 0);
             mqtt.subscribe(TOPIC_CURRENT, 0);
+            mqtt.subscribe(TOPIC_SESSION_ENERGY, 0);
             Serial.printf("MQTT subscribe: %s\n", TOPIC_STATUS);
             Serial.printf("MQTT subscribe: %s\n", TOPIC_POWER);
             Serial.printf("MQTT subscribe: %s\n", TOPIC_CURRENT);
+            Serial.printf("MQTT subscribe: %s\n", TOPIC_SESSION_ENERGY);
             publish_presence();
         }
         else {
@@ -482,6 +516,7 @@ void setup()
     setup_power_display();
     set_power_label(0.0f);
     set_current_label(0.0f);
+    set_session_energy_label(0.0f);
 
     mqtt.setServer(MQTT_HOST, MQTT_PORT);
     mqtt.setCallback(mqtt_callback);
