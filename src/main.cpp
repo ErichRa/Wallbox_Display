@@ -10,6 +10,7 @@
 #include <lgfx/v1/platforms/esp32s3/Bus_RGB.hpp>
 #include <lgfx/v1/platforms/esp32s3/Panel_RGB.hpp>
 #include <lvgl.h>
+#include <driver/gpio.h>
 #include "ui.h"
 #include "config.h"
 
@@ -245,9 +246,13 @@ void setup()
     Serial.begin(115200);
     delay(300);
 
-    // GPIO38 is the GT911 interrupt line on this board. It must not be
-    // configured as the relay output used by the original Elecrow demo.
+    // GPIO19/20 are also the ESP32-S3 native USB D-/D+ pins.
+    // Reset their GPIO configuration explicitly before assigning them to I2C.
+    gpio_reset_pin(static_cast<gpio_num_t>(TOUCH_SDA));
+    gpio_reset_pin(static_cast<gpio_num_t>(TOUCH_SCL));
+    delay(10);
 
+    Serial.println("I2C: GPIO19/20 reset, starting Wire1");
     Wire1.begin(TOUCH_SDA, TOUCH_SCL);
     Wire1.setClock(400000);
 
