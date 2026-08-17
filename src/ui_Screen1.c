@@ -1,14 +1,13 @@
 #include "ui.h"
 
-static const lv_color_t COLOR_BG       = { .blue = 0x0B, .green = 0x09, .red = 0x07 };
-static const lv_color_t COLOR_PANEL    = { .blue = 0x20, .green = 0x18, .red = 0x10 };
-static const lv_color_t COLOR_PANEL_2  = { .blue = 0x2C, .green = 0x20, .red = 0x16 };
-static const lv_color_t COLOR_TEXT     = { .blue = 0xF2, .green = 0xF3, .red = 0xF5 };
-static const lv_color_t COLOR_MUTED    = { .blue = 0xAA, .green = 0xA6, .red = 0xA2 };
-static const lv_color_t COLOR_GREEN    = { .blue = 0x56, .green = 0xD8, .red = 0x79 };
-static const lv_color_t COLOR_RED      = { .blue = 0x32, .green = 0x33, .red = 0xD9 };
-static const lv_color_t COLOR_BLUE     = { .blue = 0xE8, .green = 0x91, .red = 0x3A };
-static const lv_color_t COLOR_YELLOW   = { .blue = 0x38, .green = 0xC1, .red = 0xFF };
+#define COLOR_BG      lv_color_hex(0x07090B)
+#define COLOR_PANEL   lv_color_hex(0x101820)
+#define COLOR_PANEL_2 lv_color_hex(0x16202C)
+#define COLOR_TEXT    lv_color_hex(0xF5F3F2)
+#define COLOR_MUTED   lv_color_hex(0xA2A6AA)
+#define COLOR_GREEN   lv_color_hex(0x79D856)
+#define COLOR_BLUE    lv_color_hex(0x3A91E8)
+#define COLOR_YELLOW  lv_color_hex(0xFFC138)
 
 static lv_obj_t *make_label(lv_obj_t *parent, const char *text, int x, int y,
                             const lv_font_t *font, lv_color_t color)
@@ -54,7 +53,7 @@ void ui_Screen1_screen_init(void)
     lv_obj_set_style_bg_opa(ui_Screen1, LV_OPA_COVER, 0);
     lv_obj_set_style_pad_all(ui_Screen1, 0, 0);
 
-    /* Header ---------------------------------------------------- */
+    /* Header */
     make_label(ui_Screen1, "WALLBOX", 28, 18, &lv_font_montserrat_32, COLOR_TEXT);
     make_label(ui_Screen1, "Smart Charging", 30, 52, &lv_font_montserrat_16, COLOR_MUTED);
 
@@ -72,7 +71,7 @@ void ui_Screen1_screen_init(void)
     lv_obj_set_style_bg_opa(header_line, LV_OPA_COVER, 0);
     lv_obj_set_style_border_width(header_line, 0, 0);
 
-    /* Main card ------------------------------------------------- */
+    /* Main card */
     lv_obj_t *main_panel = make_panel(ui_Screen1, 24, 90, 752, 230);
 
     ui_SocArc = lv_arc_create(main_panel);
@@ -119,7 +118,7 @@ void ui_Screen1_screen_init(void)
     ui_ChargeTimeLabel = make_label(main_panel, "--:-- h", 570, 172,
                                     &lv_font_montserrat_20, COLOR_TEXT);
 
-    /* Start / Stop --------------------------------------------- */
+    /* Start / Stop */
     ui_OnButton = lv_button_create(ui_Screen1);
     lv_obj_set_pos(ui_OnButton, 24, 334);
     lv_obj_set_size(ui_OnButton, 368, 92);
@@ -139,7 +138,7 @@ void ui_Screen1_screen_init(void)
     lv_obj_add_event_cb(ui_OnButton, ui_event_OnButton, LV_EVENT_ALL, NULL);
     lv_obj_add_event_cb(ui_OffButton, ui_event_OffButton, LV_EVENT_ALL, NULL);
 
-    /* Footer ---------------------------------------------------- */
+    /* Footer */
     lv_obj_t *footer = make_panel(ui_Screen1, 24, 438, 752, 34);
     lv_obj_set_style_bg_color(footer, COLOR_PANEL_2, 0);
 
