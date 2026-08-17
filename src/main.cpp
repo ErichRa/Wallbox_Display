@@ -5,7 +5,6 @@
 
 #include <WiFi.h>
 #include <PubSubClient.h>
-#include <ArduinoJson.h>
 #include <LovyanGFX.hpp>
 #include <lgfx/v1/platforms/esp32s3/Bus_RGB.hpp>
 #include <lgfx/v1/platforms/esp32s3/Panel_RGB.hpp>
@@ -116,168 +115,126 @@ void touchpad_read(lv_indev_t *indev, lv_indev_data_t *data)
     }
 }
 
-void set_power_label(float watts)
-{
-    char text[24];
-    snprintf(text, sizeof(text), "%.2f kW", watts / 1000.0f);
-    lv_label_set_text(ui_TempLabel, text);
-}
-
-void set_status_label(bool connected, bool charging, float current)
-{
-    char text[40];
-    if(charging) snprintf(text, sizeof(text), "LÄDT · %.1f A", current);
-    else if(connected) snprintf(text, sizeof(text), "VERBUNDEN");
-    else snprintf(text, sizeof(text), "BEREIT");
-    lv_label_set_text(ui_HumiLabel, text);
-    lv_label_set_text(ui_VehicleLabel,
-                      connected ? "Fahrzeug verbunden" : "Fahrzeug nicht verbunden");
-}
-
-void set_wallbox_status(const String &status)
+void set_wallbox_status(int status)
 {
     const char *main_text = "STATUS UNBEKANNT";
     const char *vehicle_text = "Fahrzeugstatus unbekannt";
 
-    if(status == "disconnected") {
-        main_text = "BEREIT";
-        vehicle_text = "Fahrzeug nicht verbunden";
-    }
-    else if(status == "connected") {
-        main_text = "VERBUNDEN";
-        vehicle_text = "Fahrzeug verbunden";
-    }
-    else if(status == "charging") {
-        main_text = "LÄDT";
-        vehicle_text = "Fahrzeug wird geladen";
-    }
-    else if(status == "charged") {
-        main_text = "GELADEN";
-        vehicle_text = "Ladevorgang beendet";
-    }
-    else if(status == "waiting_sun") {
-        main_text = "WARTET AUF SONNE";
-        vehicle_text = "Fahrzeug verbunden";
-    }
-    else if(status == "waiting_rfid") {
-        main_text = "WARTET AUF RFID";
-        vehicle_text = "Fahrzeug verbunden";
-    }
-    else if(status == "waiting_start") {
-        main_text = "WARTET AUF START";
-        vehicle_text = "Fahrzeug verbunden";
-    }
-    else if(status == "low_soc") {
-        main_text = "BATTERIE-SOC ZU NIEDRIG";
-        vehicle_text = "Laden wartet";
-    }
-    else if(status == "charging_limit") {
-        main_text = "LADELEISTUNG BEGRENZT";
-        vehicle_text = "Fahrzeug verbunden";
-    }
-    else if(status == "start_charging") {
-        main_text = "LADEVORGANG STARTET";
-        vehicle_text = "Fahrzeug verbunden";
-    }
-    else if(status == "switching_3_phase") {
-        main_text = "UMSCHALTUNG AUF 3 PHASEN";
-        vehicle_text = "Fahrzeug verbunden";
-    }
-    else if(status == "switching_1_phase") {
-        main_text = "UMSCHALTUNG AUF 1 PHASE";
-        vehicle_text = "Fahrzeug verbunden";
-    }
-    else if(status == "stop_charging") {
-        main_text = "LADEVORGANG STOPPT";
-        vehicle_text = "Fahrzeug verbunden";
-    }
-    else if(status == "ground_error") {
-        main_text = "FEHLER: ERDUNG";
-        vehicle_text = "Wallbox-Fehler";
-    }
-    else if(status == "contact_error") {
-        main_text = "FEHLER: SCHÜTZ";
-        vehicle_text = "Wallbox-Fehler";
-    }
-    else if(status == "cp_error") {
-        main_text = "FEHLER: CP-EINGANG";
-        vehicle_text = "Wallbox-Fehler";
-    }
-    else if(status == "residual_current") {
-        main_text = "FEHLERSTROM ERKANNT";
-        vehicle_text = "Wallbox-Fehler";
-    }
-    else if(status == "undervoltage") {
-        main_text = "UNTERSPANNUNG";
-        vehicle_text = "Wallbox-Fehler";
-    }
-    else if(status == "overvoltage") {
-        main_text = "ÜBERSPANNUNG";
-        vehicle_text = "Wallbox-Fehler";
-    }
-    else if(status == "overheating") {
-        main_text = "ÜBERTEMPERATUR";
-        vehicle_text = "Wallbox-Fehler";
-    }
-    else if(status == "reserved") {
-        main_text = "RESERVIERT";
-        vehicle_text = "Wallbox-Status reserviert";
+    switch(status) {
+        case 0:
+            main_text = "BEREIT";
+            vehicle_text = "Fahrzeug nicht verbunden";
+            break;
+        case 1:
+            main_text = "VERBUNDEN";
+            vehicle_text = "Fahrzeug verbunden";
+            break;
+        case 2:
+            main_text = "LADEN";
+            vehicle_text = "Fahrzeug wird geladen";
+            break;
+        case 3:
+            main_text = "GELADEN";
+            vehicle_text = "Ladevorgang beendet";
+            break;
+        case 4:
+            main_text = "WARTE AUF SONNE";
+            vehicle_text = "Fahrzeug verbunden";
+            break;
+        case 5:
+            main_text = "RFID ERFORDERLICH";
+            vehicle_text = "Fahrzeug verbunden";
+            break;
+        case 6:
+            main_text = "WARTE AUF START";
+            vehicle_text = "Fahrzeug verbunden";
+            break;
+        case 7:
+            main_text = "BATTERIE ZU LEER";
+            vehicle_text = "Laden wartet";
+            break;
+        case 8:
+            main_text = "ERDUNGSFEHLER";
+            vehicle_text = "Wallbox-Fehler";
+            break;
+        case 9:
+            main_text = "KONTAKTFEHLER";
+            vehicle_text = "Wallbox-Fehler";
+            break;
+        case 10:
+            main_text = "CP-FEHLER";
+            vehicle_text = "Wallbox-Fehler";
+            break;
+        case 11:
+            main_text = "FEHLERSTROM";
+            vehicle_text = "Wallbox-Fehler";
+            break;
+        case 12:
+            main_text = "UNTERSPANNUNG";
+            vehicle_text = "Wallbox-Fehler";
+            break;
+        case 13:
+            main_text = "UEBERSPANNUNG";
+            vehicle_text = "Wallbox-Fehler";
+            break;
+        case 14:
+            main_text = "UEBERHITZUNG";
+            vehicle_text = "Wallbox-Fehler";
+            break;
+        case 15:
+        case 16:
+        case 17:
+        case 18:
+        case 19:
+            main_text = "RESERVIERT";
+            vehicle_text = "Wallbox-Status reserviert";
+            break;
+        case 20:
+            main_text = "LADELIMIT";
+            vehicle_text = "Fahrzeug verbunden";
+            break;
+        case 21:
+            main_text = "STARTE LADUNG";
+            vehicle_text = "Fahrzeug verbunden";
+            break;
+        case 22:
+            main_text = "WECHSLE AUF 3 PHASEN";
+            vehicle_text = "Fahrzeug verbunden";
+            break;
+        case 23:
+            main_text = "WECHSLE AUF 1 PHASE";
+            vehicle_text = "Fahrzeug verbunden";
+            break;
+        case 24:
+            main_text = "BEENDE LADUNG";
+            vehicle_text = "Fahrzeug verbunden";
+            break;
     }
 
     lv_label_set_text(ui_HumiLabel, main_text);
     lv_label_set_text(ui_VehicleLabel, vehicle_text);
 }
 
-void set_optional_dashboard_values(JsonDocument &doc)
-{
-    char text[32];
-
-    if(!doc["soc"].isNull()) {
-        int soc = doc["soc"].as<int>();
-        soc = constrain(soc, 0, 100);
-        lv_arc_set_value(ui_SocArc, soc);
-        snprintf(text, sizeof(text), "%d %%", soc);
-        lv_label_set_text(ui_SocLabel, text);
-    }
-
-    if(!doc["voltage"].isNull()) {
-        snprintf(text, sizeof(text), "%.0f V", doc["voltage"].as<float>());
-        lv_label_set_text(ui_VoltageLabel, text);
-    }
-
-    if(!doc["energyToday"].isNull()) {
-        snprintf(text, sizeof(text), "%.2f kWh", doc["energyToday"].as<float>());
-        lv_label_set_text(ui_EnergyTodayLabel, text);
-    }
-
-    if(!doc["chargeTime"].isNull()) {
-        const char *charge_time = doc["chargeTime"] | "--:-- h";
-        lv_label_set_text(ui_ChargeTimeLabel, charge_time);
-    }
-
-    if(!doc["temperature"].isNull()) {
-        snprintf(text, sizeof(text), "%.0f °C", doc["temperature"].as<float>());
-        lv_label_set_text(ui_TemperatureLabel, text);
-    }
-}
-
 void mqtt_callback(char *topic, byte *payload, unsigned int length)
 {
-    String message;
-    message.reserve(length);
-    for(unsigned int i = 0; i < length; ++i) {
-        message += static_cast<char>(payload[i]);
-    }
-    message.trim();
+    if(strcmp(topic, TOPIC_STATUS) != 0) return;
 
-    Serial.printf("MQTT RX [%s] = %s\n", topic, message.c_str());
+    char buffer[16];
+    const unsigned int copy_length = (length < sizeof(buffer) - 1) ? length : sizeof(buffer) - 1;
+    memcpy(buffer, payload, copy_length);
+    buffer[copy_length] = '\0';
 
-    // Node-RED sends wallbox/display/status as plain text, not JSON.
-    if(strcmp(topic, TOPIC_STATUS) == 0) {
-        set_wallbox_status(message);
-        Serial.printf("Wallbox Status: %s\n", message.c_str());
+    char *end = nullptr;
+    const long value = strtol(buffer, &end, 10);
+
+    if(end == buffer || *end != '\0' || value < 0 || value > 24) {
+        Serial.printf("MQTT Status ungueltig: %s\n", buffer);
+        set_wallbox_status(-1);
         return;
     }
+
+    Serial.printf("MQTT RX [%s] = %ld\n", topic, value);
+    set_wallbox_status(static_cast<int>(value));
 }
 
 void wifi_service()
