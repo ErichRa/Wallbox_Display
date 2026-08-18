@@ -44,7 +44,7 @@ Payload: Ladephase
 Zulässige Werte:
 - 1-ph
 - 3-ph
-- keine Ladung
+- off
 
 Topic:   wallbox/data/session_energy_kwh
 Payload: Energie des aktuellen bzw. zuletzt beendeten Ladevorgangs in kWh
