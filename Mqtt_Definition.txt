@@ -1,0 +1,179 @@
+MQTT-DEFINITION – WALLBOX DISPLAY
+==================================
+
+Projekt: ErichRa/Wallbox_Display
+Stand: 18.08.2026
+
+1. VERBINDLICHE TOPIC-STRUKTUR
+------------------------------
+
+wallbox/data/...       Aktuelle Messwerte und Zustände der Wallbox
+wallbox/session/...    Zusammengehörige bzw. abgeschlossene Ladevorgänge
+wallbox/cmd/...        Steuerbefehle
+wallbox/config/...     Einstellungen und Sollwerte
+wallbox/display/...    Betriebs- und Verbindungsdaten des CrowPanels
+
+Technische Namen werden einheitlich:
+- englisch
+- kleingeschrieben
+- als snake_case
+- ohne Leerzeichen und Umlaute
+- bei numerischen Einzelwerten möglichst mit Einheit im Namen
+
+Deutsche Bezeichnungen werden nur für die sichtbare Anzeige auf dem
+CrowPanel oder in Home Assistant verwendet.
+
+
+2. AKTUELLE EINZELWERTE UND ZUSTÄNDE
+------------------------------------
+
+Topic:   wallbox/data/status
+Payload: numerischer Victron-Wallbox-Status
+Beispiel: 2
+
+Topic:   wallbox/data/charging_power_w
+Payload: aktuelle Ladeleistung in Watt
+Beispiel: 3534
+
+Topic:   wallbox/data/charging_current_a
+Payload: aktueller Ladestrom in Ampere
+Beispiel: 16
+
+Topic:   wallbox/data/charge_phase
+Payload: Ladephase
+Zulässige Werte:
+- 1-ph
+- 3-ph
+- keine Ladung
+
+Topic:   wallbox/data/session_energy_kwh
+Payload: Energie des aktuellen bzw. zuletzt beendeten Ladevorgangs in kWh
+Beispiel: 8.42
+
+Topic:   wallbox/data/session_duration_s
+Payload: Dauer des aktuellen bzw. zuletzt beendeten Ladevorgangs in Sekunden
+Beispiel: 5820
+
+Die Ladezeit wird nicht mehr als fertig formatierter Text übertragen.
+Das CrowPanel und Home Assistant formatieren den Sekundenwert selbst.
+Beispiel: 5820 Sekunden entsprechen 01:37 h.
+
+
+3. ABGESCHLOSSENE LADVORGÄNGE
+-----------------------------
+
+Zusammengehörige Daten eines abgeschlossenen Ladevorgangs werden unter
+folgendem Topic als JSON veröffentlicht:
+
+wallbox/session/last
+
+Beispiel:
+
+{
+  "session_start": "2026-08-18T18:42:15+02:00",
+  "session_end": "2026-08-18T20:06:31+02:00",
+  "session_duration_s": 5056,
+  "session_energy_kwh": 9.72,
+  "average_power_w": 6940,
+  "charge_phase": "1-ph"
+}
+
+Die Feldnamen entsprechen soweit möglich den Namen der Einzelwerte.
+
+
+4. STEUERBEFEHLE
+----------------
+
+Topic:   wallbox/cmd/start
+Payload: 1
+Funktion: Ladevorgang starten
+
+Topic:   wallbox/cmd/stop
+Payload: 1
+Funktion: Ladevorgang stoppen
+
+
+5. EINSTELLUNGEN UND SOLLWERTE
+------------------------------
+
+Zukünftige Einstellungen werden unter wallbox/config/... abgelegt.
+
+Beispiele:
+
+wallbox/config/timer_duration_min
+wallbox/config/soc_limit_pct
+wallbox/config/charging_current_a
+
+Diese Topics werden erst verbindlich, wenn die jeweilige Funktion in
+Node-RED und im CrowPanel implementiert ist.
+
+
+6. BETRIEBSDATEN DES CROWPANELS
+-------------------------------
+
+Topic:   wallbox/display/online
+Payload: 1 = online, 0 = offline
+Hinweis: Der Offline-Wert wird als MQTT Last Will veröffentlicht.
+
+Topic:   wallbox/display/ip
+Payload: IP-Adresse des CrowPanels
+Beispiel: 192.168.1.175
+
+Topic:   wallbox/display/rssi
+Payload: WLAN-Signalstärke in dBm
+Beispiel: -53
+
+
+7. ZUORDNUNG DER BISHERIGEN TOPICS
+----------------------------------
+
+Bisher: wallbox/display/status
+Neu:    wallbox/data/status
+
+Bisher: wallbox/display/power
+Neu:    wallbox/data/charging_power_w
+
+Bisher: wallbox/display/charge_current
+Neu:    wallbox/data/charging_current_a
+
+Bisher: wallbox/display/charge_phase
+Neu:    wallbox/data/charge_phase
+
+Bisher: wallbox/display/session_energy
+Neu:    wallbox/data/session_energy_kwh
+
+Bisher: wallbox/display/charge_time
+Neu:    wallbox/data/session_duration_s
+
+Unverändert:
+wallbox/cmd/start
+wallbox/cmd/stop
+wallbox/display/online
+wallbox/display/ip
+wallbox/display/rssi
+
+
+8. NUTZUNG DURCH DISPLAY UND HOME ASSISTANT
+-------------------------------------------
+
+Node-RED veröffentlicht jeden aktuellen Messwert nur einmal unter
+wallbox/data/....
+
+Das CrowPanel und Home Assistant abonnieren dasselbe Topic. Dadurch gibt
+es für einen Messwert nur eine technische Bezeichnung und eine Quelle.
+
+Beispiel:
+
+Node-RED veröffentlicht:
+Topic:   wallbox/data/charging_power_w
+Payload: 1580
+
+Abonnenten:
+- CrowPanel zur Anzeige der Ladeleistung
+- Home Assistant für Dashboard, Verlauf und Statistik
+
+Die Home-Assistant-MQTT-Discovery-Konfiguration verweist mit
+state_topic direkt auf das jeweilige wallbox/data/... Topic.
+
+Abgeschlossene Ladesessions werden zusätzlich als gemeinsamer Datensatz
+unter wallbox/session/last veröffentlicht.
