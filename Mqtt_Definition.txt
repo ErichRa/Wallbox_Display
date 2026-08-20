@@ -27,6 +27,14 @@ CrowPanel oder in Home Assistant verwendet.
 2. AKTUELLE EINZELWERTE UND ZUSTÄNDE
 ------------------------------------
 
+Topic:   wallbox/data/online
+Payload: tatsächliche Erreichbarkeit der Victron Wallbox
+Zulässige Werte:
+- 1 = Wallbox online
+- 0 = Wallbox offline
+Hinweis: Node-RED veröffentlicht diesen Wert retained. Das CrowPanel zeigt
+bis zum Empfang eines gültigen Wertes "Wallbox --" in Grau an.
+
 Topic:   wallbox/data/status
 Payload: numerischer Victron-Wallbox-Status
 Beispiel: 2
