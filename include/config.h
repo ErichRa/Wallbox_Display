@@ -5,6 +5,7 @@
 #include "secrets.h"
 
 // Node-RED -> CrowPanel
+#define TOPIC_WALLBOX_ONLINE  "wallbox/data/online"
 #define TOPIC_STATUS          "wallbox/display/status"
 #define TOPIC_POWER           "wallbox/display/power"
 #define TOPIC_CURRENT         "wallbox/display/charge_current"
