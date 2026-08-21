@@ -1,6 +1,6 @@
 # Wallbox Display – Victron / MQTT / CrowPanel
 
-Stand: 17.08.2026
+Stand: 21.08.2026
 
 Dieses Projekt zeigt und steuert eine Victron EV Charging Station auf einem Elecrow CrowPanel DIS08070H V3.0 mit ESP32-S3, LVGL und MQTT.
 
@@ -76,12 +76,12 @@ Das Display abonniert folgende Topics:
 
 | Topic | Bedeutung | Beispiel |
 | --- | --- | --- |
-| `wallbox/display/status` | numerischer Wallbox-Status | `2` |
-| `wallbox/display/power` | Ladeleistung in Watt | `3534` |
-| `wallbox/display/charge_current` | Ladestrom in Ampere | `16` |
-| `wallbox/display/charge_phase` | Ladephase | `1-ph` |
-| `wallbox/display/session_energy` | Energie der aktuellen Ladesession in kWh | `8.42` |
-| `wallbox/display/charge_time` | Ladezeit, bereits formatiert | `01.37 h` |
+| `wallbox/data/status` | numerischer Wallbox-Status | `2` |
+| `wallbox/data/charging_power_w` | Ladeleistung in Watt | `3534` |
+| `wallbox/data/charging_current_a` | Ladestrom in Ampere | `16` |
+| `wallbox/data/charge_phase` | Ladephase | `1-ph` |
+| `wallbox/data/session_energy_kwh` | Energie der aktuellen Ladesession in kWh | `8.42` |
+| `wallbox/data/session_duration_s` | Ladedauer in Sekunden | `5820` |
 
 ## 4. MQTT – CrowPanel → Node-RED
 
@@ -157,7 +157,7 @@ else if (l1 > limit && l2 > limit) {
     msg.payload = "3-ph";
 }
 else {
-    msg.payload = "keine Ladung";
+    msg.payload = "off";
 }
 
 return msg;
@@ -166,7 +166,7 @@ return msg;
 Ausgabe:
 
 ```text
-wallbox/display/charge_phase
+wallbox/data/charge_phase
 ```
 
 mit:
@@ -174,47 +174,30 @@ mit:
 ```text
 1-ph
 3-ph
-keine Ladung
+off
 ```
 
 Die Phasenwahl ändert sich im normalen Betrieb nicht laufend, sondern wird praktisch beim Start des Ladevorgangs festgelegt.
 
-## 7. Ladezeit in Node-RED
+## 7. Ladezeit in Sekunden
 
-Die Victron-Wallbox liefert die Ladezeit in Sekunden.
+Die Victron-Wallbox liefert die Ladezeit in Sekunden. Node-RED überträgt den
+numerischen Wert ohne Formatierung:
 
-Die Umrechnung in Stunden und Minuten erfolgt bewusst in Node-RED, damit das CrowPanel nur noch den fertigen Text darstellen muss.
-
-Function-Node:
-
-```javascript
-let seconds = Number(msg.payload || 0);
-
-let hours = Math.floor(seconds / 3600);
-let minutes = Math.floor((seconds % 3600) / 60);
-
-msg.payload =
-    String(hours).padStart(2, "0") +
-    "." +
-    String(minutes).padStart(2, "0") +
-    " h";
-
-return msg;
+```text
+wallbox/data/session_duration_s
+Payload: 5820
 ```
+
+Das CrowPanel formatiert den Wert lokal als Stunden und Minuten.
 
 Beispiele:
 
 ```text
-90 s    → 00.01 h
-3600 s  → 01.00 h
-5820 s  → 01.37 h
-14520 s → 04.02 h
-```
-
-Ausgabe:
-
-```text
-wallbox/display/charge_time
+90 s    → 00:01 h
+3600 s  → 01:00 h
+5820 s  → 01:37 h
+14520 s → 04:02 h
 ```
 
 ## 8. Darstellung von Ladestrom und Phase
@@ -293,7 +276,7 @@ Der aktuelle Funktionsumfang umfasst:
 - Ladestromanzeige ohne Nachkommastellen
 - Ladephasenerkennung 1-ph / 3-ph
 - Anzeige der Session-Energie
-- Anzeige der Ladezeit im Format `hh.mm h`
+- Anzeige der Ladezeit im Format `hh:mm h`
 - HTTP-Webserver
 - Screenshot des kompletten Displays über `/screenshot.bmp`
 - funktionierender GT911-Touch
