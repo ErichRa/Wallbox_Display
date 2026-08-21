@@ -103,15 +103,15 @@ bool power_received = false;
 float pending_current_amps = 0.0f;
 float displayed_current_amps = -1.0f;
 bool current_received = false;
-char pending_charge_phase[16] = "keine Ladung";
+char pending_charge_phase[16] = "off";
 char displayed_charge_phase[16] = "";
 bool charge_phase_received = false;
 float pending_session_energy_kwh = 0.0f;
 float displayed_session_energy_kwh = -1.0f;
 bool session_energy_received = false;
-char pending_charge_time[24] = "--.-- h";
-char displayed_charge_time[24] = "";
-bool charge_time_received = false;
+uint32_t pending_session_duration_s = 0;
+uint32_t displayed_session_duration_s = 0xFFFFFFFFUL;
+bool session_duration_received = false;
 
 lv_obj_t *power_decimal_label = nullptr;
 lv_obj_t *power_fraction_label = nullptr;
@@ -355,7 +355,7 @@ void set_current_phase_label(float amps, const char *phase)
     if(amps < 0.0f) amps = 0.0f;
 
     const char *phase_text = phase;
-    if(strcmp(phase, "keine Ladung") == 0) phase_text = "--";
+    if(strcmp(phase, "off") == 0) phase_text = "--";
 
     char text[24];
     snprintf(text, sizeof(text), "%.0f A  %s", amps, phase_text);
@@ -369,6 +369,18 @@ void set_session_energy_label(float kwh)
     char text[20];
     snprintf(text, sizeof(text), "%.2f kWh", kwh);
     lv_label_set_text(ui_EnergyTodayLabel, text);
+}
+
+void set_session_duration_label(uint32_t seconds)
+{
+    const uint32_t hours = seconds / 3600U;
+    const uint32_t minutes = (seconds % 3600U) / 60U;
+
+    char text[24];
+    snprintf(text, sizeof(text), "%02lu:%02lu h",
+             static_cast<unsigned long>(hours),
+             static_cast<unsigned long>(minutes));
+    lv_label_set_text(ui_ChargeTimeLabel, text);
 }
 
 void set_wallbox_online_label(int online)
@@ -493,7 +505,7 @@ void mqtt_callback(char *topic, byte *payload, unsigned int length)
     if(strcmp(topic, TOPIC_CHARGE_PHASE) == 0) {
         if(strcmp(buffer, "1-ph") != 0 &&
            strcmp(buffer, "3-ph") != 0 &&
-           strcmp(buffer, "keine Ladung") != 0) {
+           strcmp(buffer, "off") != 0) {
             Serial.printf("MQTT Ladephase ungueltig: %s\n", buffer);
             return;
         }
@@ -516,14 +528,16 @@ void mqtt_callback(char *topic, byte *payload, unsigned int length)
         return;
     }
 
-    if(strcmp(topic, TOPIC_CHARGE_TIME) == 0) {
-        if(buffer[0] == '\0') {
-            Serial.println("MQTT Ladezeit leer");
+    if(strcmp(topic, TOPIC_SESSION_DURATION) == 0) {
+        char *end = nullptr;
+        const unsigned long value = strtoul(buffer, &end, 10);
+        if(end == buffer || *end != '\0' || buffer[0] == '-') {
+            Serial.printf("MQTT Ladedauer ungueltig: %s\n", buffer);
             return;
         }
-        snprintf(pending_charge_time, sizeof(pending_charge_time), "%s", buffer);
-        charge_time_received = true;
-        Serial.printf("MQTT RX [%s] = %s\n", topic, pending_charge_time);
+        pending_session_duration_s = static_cast<uint32_t>(value);
+        session_duration_received = true;
+        Serial.printf("MQTT RX [%s] = %lu s\n", topic, value);
         return;
     }
 }
@@ -554,10 +568,10 @@ void update_display_from_pending_data()
     }
 
     float effective_current = current_received ? pending_current_amps : 0.0f;
-    const char *effective_phase = charge_phase_received ? pending_charge_phase : "keine Ladung";
+    const char *effective_phase = charge_phase_received ? pending_charge_phase : "off";
     if(displayed_wallbox_status == 0 || displayed_wallbox_status == 3) {
         effective_current = 0.0f;
-        effective_phase = "keine Ladung";
+        effective_phase = "off";
     }
 
     if(effective_current != displayed_current_amps ||
@@ -576,11 +590,13 @@ void update_display_from_pending_data()
         Serial.printf("Display Ladeenergie aktualisiert: %.3f kWh\n", displayed_session_energy_kwh);
     }
 
-    const char *effective_charge_time = charge_time_received ? pending_charge_time : "--.-- h";
-    if(strcmp(effective_charge_time, displayed_charge_time) != 0) {
-        snprintf(displayed_charge_time, sizeof(displayed_charge_time), "%s", effective_charge_time);
-        lv_label_set_text(ui_ChargeTimeLabel, displayed_charge_time);
-        Serial.printf("Display Ladezeit aktualisiert: %s\n", displayed_charge_time);
+    const uint32_t effective_session_duration =
+        session_duration_received ? pending_session_duration_s : 0U;
+    if(effective_session_duration != displayed_session_duration_s) {
+        displayed_session_duration_s = effective_session_duration;
+        set_session_duration_label(displayed_session_duration_s);
+        Serial.printf("Display Ladedauer aktualisiert: %lu s\n",
+                      static_cast<unsigned long>(displayed_session_duration_s));
     }
 }
 
@@ -646,14 +662,14 @@ void mqtt_service()
             mqtt.subscribe(TOPIC_CURRENT, 0);
             mqtt.subscribe(TOPIC_CHARGE_PHASE, 0);
             mqtt.subscribe(TOPIC_SESSION_ENERGY, 0);
-            mqtt.subscribe(TOPIC_CHARGE_TIME, 0);
+            mqtt.subscribe(TOPIC_SESSION_DURATION, 0);
             Serial.printf("MQTT subscribe: %s\n", TOPIC_WALLBOX_ONLINE);
             Serial.printf("MQTT subscribe: %s\n", TOPIC_STATUS);
             Serial.printf("MQTT subscribe: %s\n", TOPIC_POWER);
             Serial.printf("MQTT subscribe: %s\n", TOPIC_CURRENT);
             Serial.printf("MQTT subscribe: %s\n", TOPIC_CHARGE_PHASE);
             Serial.printf("MQTT subscribe: %s\n", TOPIC_SESSION_ENERGY);
-            Serial.printf("MQTT subscribe: %s\n", TOPIC_CHARGE_TIME);
+            Serial.printf("MQTT subscribe: %s\n", TOPIC_SESSION_DURATION);
             publish_presence();
         }
         else {
@@ -732,9 +748,9 @@ void setup()
     lv_label_set_text(ui_HumiLabel, "MQTT WARTET");
     setup_power_display();
     set_power_label(0.0f);
-    set_current_phase_label(0.0f, "keine Ladung");
+    set_current_phase_label(0.0f, "off");
     set_session_energy_label(0.0f);
-    lv_label_set_text(ui_ChargeTimeLabel, "--.-- h");
+    set_session_duration_label(0U);
 
     mqtt.setServer(MQTT_HOST, MQTT_PORT);
     mqtt.setCallback(mqtt_callback);
