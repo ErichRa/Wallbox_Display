@@ -2,7 +2,7 @@ MQTT-DEFINITION – WALLBOX DISPLAY
 ==================================
 
 Projekt: ErichRa/Wallbox_Display
-Stand: 18.08.2026
+Stand: 21.08.2026
 
 1. VERBINDLICHE TOPIC-STRUKTUR
 ------------------------------
@@ -169,6 +169,11 @@ wallbox/data/....
 
 Das CrowPanel und Home Assistant abonnieren dasselbe Topic. Dadurch gibt
 es für einen Messwert nur eine technische Bezeichnung und eine Quelle.
+
+Das CrowPanel verwendet seit der Umstellung ausschließlich die unter
+wallbox/data/... definierten Messwert-Topics. Die bisherigen
+wallbox/display/... Messwert-Topics dienen nur noch der Übergangsphase
+in Node-RED und können nach erfolgreichem Test entfernt werden.
 
 Beispiel:
 
