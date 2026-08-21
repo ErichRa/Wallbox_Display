@@ -150,6 +150,6 @@ void ui_Screen1_screen_init(void)
     make_label(footer, "Temperatur", 405, 8, &lv_font_montserrat_14, COLOR_MUTED);
     ui_TemperatureLabel = make_label(footer, "-- °C", 500, 8,
                                      &lv_font_montserrat_14, COLOR_TEXT);
-    make_label(footer, "Wallbox online", 610, 8,
-               &lv_font_montserrat_14, COLOR_GREEN);
+    ui_WallboxOnlineLabel = make_label(footer, "Wallbox --", 610, 8,
+                                        &lv_font_montserrat_14, COLOR_MUTED);
 }

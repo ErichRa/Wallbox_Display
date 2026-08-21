@@ -9,6 +9,7 @@ lv_obj_t *ui_VoltageLabel;
 lv_obj_t *ui_EnergyTodayLabel;
 lv_obj_t *ui_ChargeTimeLabel;
 lv_obj_t *ui_TemperatureLabel;
+lv_obj_t *ui_WallboxOnlineLabel;
 lv_obj_t *ui_VehicleLabel;
 lv_obj_t *ui_WifiLabel;
 lv_obj_t *ui_MqttLabel;

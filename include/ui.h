@@ -20,6 +20,7 @@ extern lv_obj_t *ui_VoltageLabel;
 extern lv_obj_t *ui_EnergyTodayLabel;
 extern lv_obj_t *ui_ChargeTimeLabel;
 extern lv_obj_t *ui_TemperatureLabel;
+extern lv_obj_t *ui_WallboxOnlineLabel;
 extern lv_obj_t *ui_VehicleLabel;
 extern lv_obj_t *ui_WifiLabel;
 extern lv_obj_t *ui_MqttLabel;

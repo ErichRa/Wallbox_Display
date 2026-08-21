@@ -93,6 +93,8 @@ int last_led_sent = -1;
 
 lv_color_t *screen_frame_buffer = nullptr;
 
+int pending_wallbox_online = -1;
+int displayed_wallbox_online = -2;
 int pending_wallbox_status = -1;
 int displayed_wallbox_status = -2;
 float pending_power_watts = 0.0f;
@@ -369,6 +371,22 @@ void set_session_energy_label(float kwh)
     lv_label_set_text(ui_EnergyTodayLabel, text);
 }
 
+void set_wallbox_online_label(int online)
+{
+    if(online == 1) {
+        lv_label_set_text(ui_WallboxOnlineLabel, "Wallbox online");
+        lv_obj_set_style_text_color(ui_WallboxOnlineLabel, lv_color_hex(0x79D856), LV_PART_MAIN);
+    }
+    else if(online == 0) {
+        lv_label_set_text(ui_WallboxOnlineLabel, "Wallbox offline");
+        lv_obj_set_style_text_color(ui_WallboxOnlineLabel, lv_color_hex(0xE05252), LV_PART_MAIN);
+    }
+    else {
+        lv_label_set_text(ui_WallboxOnlineLabel, "Wallbox --");
+        lv_obj_set_style_text_color(ui_WallboxOnlineLabel, lv_color_hex(0xA2A6AA), LV_PART_MAIN);
+    }
+}
+
 void set_wallbox_status(int status)
 {
     const char *main_text = "STATUS UNBEKANNT";
@@ -420,6 +438,16 @@ void mqtt_callback(char *topic, byte *payload, unsigned int length)
     char buffer[24];
     if(!payload_to_buffer(payload, length, buffer, sizeof(buffer))) {
         Serial.printf("MQTT Payload zu lang [%s]\n", topic);
+        return;
+    }
+
+    if(strcmp(topic, TOPIC_WALLBOX_ONLINE) == 0) {
+        if(strcmp(buffer, "0") != 0 && strcmp(buffer, "1") != 0) {
+            Serial.printf("MQTT Wallbox-Online-Status ungueltig: %s\n", buffer);
+            return;
+        }
+        pending_wallbox_online = (buffer[0] == '1') ? 1 : 0;
+        Serial.printf("MQTT RX [%s] = %d\n", topic, pending_wallbox_online);
         return;
     }
 
@@ -502,6 +530,12 @@ void mqtt_callback(char *topic, byte *payload, unsigned int length)
 
 void update_display_from_pending_data()
 {
+    if(pending_wallbox_online != displayed_wallbox_online) {
+        displayed_wallbox_online = pending_wallbox_online;
+        set_wallbox_online_label(displayed_wallbox_online);
+        Serial.printf("Display Wallbox-Verbindung aktualisiert: %d\n", displayed_wallbox_online);
+    }
+
     if(pending_wallbox_status != displayed_wallbox_status) {
         displayed_wallbox_status = pending_wallbox_status;
         set_wallbox_status(displayed_wallbox_status);
@@ -606,12 +640,14 @@ void mqtt_service()
 
         if(ok) {
             Serial.println("MQTT verbunden");
+            mqtt.subscribe(TOPIC_WALLBOX_ONLINE, 0);
             mqtt.subscribe(TOPIC_STATUS, 0);
             mqtt.subscribe(TOPIC_POWER, 0);
             mqtt.subscribe(TOPIC_CURRENT, 0);
             mqtt.subscribe(TOPIC_CHARGE_PHASE, 0);
             mqtt.subscribe(TOPIC_SESSION_ENERGY, 0);
             mqtt.subscribe(TOPIC_CHARGE_TIME, 0);
+            Serial.printf("MQTT subscribe: %s\n", TOPIC_WALLBOX_ONLINE);
             Serial.printf("MQTT subscribe: %s\n", TOPIC_STATUS);
             Serial.printf("MQTT subscribe: %s\n", TOPIC_POWER);
             Serial.printf("MQTT subscribe: %s\n", TOPIC_CURRENT);
