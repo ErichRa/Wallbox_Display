@@ -101,6 +101,34 @@ void ui_Screen1_screen_init(void)
     ui_VehicleLabel = make_label(main_panel, "Fahrzeug nicht verbunden", 250, 136,
                                  &lv_font_montserrat_18, COLOR_MUTED);
 
+    ui_ManualModeButton = lv_button_create(main_panel);
+    lv_obj_set_pos(ui_ManualModeButton, 250, 174);
+    lv_obj_set_size(ui_ManualModeButton, 88, 40);
+    style_button(ui_ManualModeButton, lv_color_hex(0x334155));
+    lv_obj_t *manual_label = make_label(ui_ManualModeButton, "MANUAL", 0, 0,
+                                        &lv_font_montserrat_14, COLOR_TEXT);
+    lv_obj_center(manual_label);
+
+    ui_AutoModeButton = lv_button_create(main_panel);
+    lv_obj_set_pos(ui_AutoModeButton, 344, 174);
+    lv_obj_set_size(ui_AutoModeButton, 88, 40);
+    style_button(ui_AutoModeButton, lv_color_hex(0x334155));
+    lv_obj_t *auto_label = make_label(ui_AutoModeButton, "AUTO", 0, 0,
+                                      &lv_font_montserrat_14, COLOR_TEXT);
+    lv_obj_center(auto_label);
+
+    ui_ScheduledModeButton = lv_button_create(main_panel);
+    lv_obj_set_pos(ui_ScheduledModeButton, 438, 174);
+    lv_obj_set_size(ui_ScheduledModeButton, 88, 40);
+    style_button(ui_ScheduledModeButton, lv_color_hex(0x334155));
+    lv_obj_t *scheduled_label = make_label(ui_ScheduledModeButton, "SCHEDULED", 0, 0,
+                                           &lv_font_montserrat_14, COLOR_TEXT);
+    lv_obj_center(scheduled_label);
+
+    lv_obj_add_event_cb(ui_ManualModeButton, ui_event_ManualModeButton, LV_EVENT_ALL, NULL);
+    lv_obj_add_event_cb(ui_AutoModeButton, ui_event_AutoModeButton, LV_EVENT_ALL, NULL);
+    lv_obj_add_event_cb(ui_ScheduledModeButton, ui_event_ScheduledModeButton, LV_EVENT_ALL, NULL);
+
     lv_obj_t *divider = lv_obj_create(main_panel);
     lv_obj_set_pos(divider, 545, 20);
     lv_obj_set_size(divider, 1, 190);
