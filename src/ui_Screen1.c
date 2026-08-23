@@ -99,8 +99,8 @@ void ui_Screen1_screen_init(void)
                                      &lv_font_montserrat_18, COLOR_GREEN);
     lv_obj_set_width(ui_ChargePhaseLabel, 185);
     lv_obj_set_style_text_align(ui_ChargePhaseLabel, LV_TEXT_ALIGN_CENTER, 0);
-    ui_CurrentLabel = make_label(main_panel, "--.- A", 20, 90,
-                                 &lv_font_montserrat_28, COLOR_TEXT);
+    ui_CurrentLabel = make_label(main_panel, "--.- A", 20, 86,
+                                 &lv_font_montserrat_36, COLOR_TEXT);
     lv_obj_set_width(ui_CurrentLabel, 185);
     lv_obj_set_style_text_align(ui_CurrentLabel, LV_TEXT_ALIGN_CENTER, 0);
     lv_obj_t *current_caption = make_label(main_panel, "LADESTROM", 20, 127,
