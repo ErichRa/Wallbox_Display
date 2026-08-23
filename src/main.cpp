@@ -985,6 +985,7 @@ void setup()
 {
     Serial.begin(115200);
     delay(300);
+    Serial.printf("Wallbox Display v%s\n", WALLBOX_DISPLAY_VERSION);
 
     crowpanel_release_usb_pads_for_i2c(TOUCH_SDA, TOUCH_SCL);
     delay(10);
