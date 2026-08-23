@@ -144,12 +144,8 @@ void ui_Screen1_screen_init(void)
     lv_obj_t *footer = make_panel(ui_Screen1, 24, 438, 752, 34);
     lv_obj_set_style_bg_color(footer, COLOR_PANEL_2, 0);
 
-    make_label(footer, "SOC", 14, 8, &lv_font_montserrat_14, COLOR_MUTED);
-    make_label(footer, "Energie gesamt: --.- kWh", 130, 8,
-               &lv_font_montserrat_14, COLOR_MUTED);
-    make_label(footer, "Temperatur", 405, 8, &lv_font_montserrat_14, COLOR_MUTED);
-    ui_TemperatureLabel = make_label(footer, "-- °C", 500, 8,
+    ui_TotalEnergyLabel = make_label(footer, "Energie gesamt: --.-- kWh", 14, 8,
                                      &lv_font_montserrat_14, COLOR_TEXT);
     ui_WallboxOnlineLabel = make_label(footer, "Wallbox --", 610, 8,
-                                        &lv_font_montserrat_14, COLOR_MUTED);
+                                       &lv_font_montserrat_14, COLOR_MUTED);
 }
