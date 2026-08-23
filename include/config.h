@@ -4,7 +4,7 @@
 // Diese Datei wird NICHT in GitHub gespeichert.
 #include "secrets.h"
 
-#define WALLBOX_DISPLAY_VERSION "2.0.0"
+#define WALLBOX_DISPLAY_VERSION "2.1.0"
 
 // Node-RED -> CrowPanel
 #define TOPIC_WALLBOX_ONLINE   "wallbox/data/online"

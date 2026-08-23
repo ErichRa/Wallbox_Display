@@ -1,5 +1,31 @@
 # Changelog
 
+## 2.1.0 – 23.08.2026
+
+Finalisierter Bedien- und Darstellungsstand des Wallbox-Displays.
+
+### Darstellung
+
+- Sollstromanzeige und Regler direkt unter dem Ladestrom-Kreisdiagramm
+- vergrößerter Ladestromwert und gleichmäßige Anordnung von Phase, Stromwert
+  und Beschriftung im Kreisdiagramm
+- Ladeleistung, Status und Fahrzeugtext rechtsbündig ausgerichtet
+- verbreiterter `SCHEDULED`-Button bei gleich breiten `MANUAL`- und
+  `AUTO`-Buttons
+- WLAN-RSSI, MQTT-Status und IP-Adresse rechtsbündig ausgerichtet
+- NTP-synchronisierte Uhrzeit mittig in der unteren Statuszeile
+
+### Bedienung
+
+- aktiver Lademodus blau, andere auswählbare Modi dunkelblau und gesperrte
+  Modi grau dargestellt
+- angeforderter Lademodus bis zur bestätigten Rückmeldung gelb markiert
+- unbekannter Startstatus einzeilig dargestellt
+- automatische Hintergrundbeleuchtung: nach zwei Minuten auf 5 Prozent
+  dimmen und nach zehn Minuten ausschalten
+- erste Berührung bei ausgeschalteter Beleuchtung dient ausschließlich zum
+  Aufwecken
+
 ## 2.0.0 – 23.08.2026
 
 Abgenommene stabile Version der Wallbox-Anzeige und -Steuerung.

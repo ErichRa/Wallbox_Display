@@ -1,11 +1,11 @@
 # Wallbox Display – Victron / MQTT / CrowPanel
 
-Version: 2.0.0
+Version: 2.1.0
 Stand: 23.08.2026
 
 Dieses Projekt zeigt und steuert eine Victron EV Charging Station auf einem Elecrow CrowPanel DIS08070H V3.0 mit ESP32-S3, LVGL und MQTT.
 
-Version 2.0.0 ist die abgenommene stabile Einsatzversion. Die Datenaufbereitung erfolgt überwiegend in Node-RED, das CrowPanel übernimmt vor allem die Darstellung und die Bedienung.
+Version 2.1.0 ist die abgenommene stabile Einsatzversion. Die Datenaufbereitung erfolgt überwiegend in Node-RED, das CrowPanel übernimmt vor allem die Darstellung und die Bedienung.
 
 ## 1. Architektur
 
