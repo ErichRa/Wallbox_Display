@@ -87,18 +87,18 @@ void ui_Screen1_screen_init(void)
     lv_obj_set_style_arc_width(ui_CurrentArc, 14, LV_PART_INDICATOR);
     lv_obj_set_style_bg_opa(ui_CurrentArc, LV_OPA_TRANSP, LV_PART_KNOB);
 
-    lv_obj_t *current_title = make_label(main_panel, "LADESTROM", 20, 66,
-                                         &lv_font_montserrat_18, COLOR_GREEN);
-    lv_obj_set_width(current_title, 185);
-    lv_obj_set_style_text_align(current_title, LV_TEXT_ALIGN_CENTER, 0);
+    ui_ChargePhaseLabel = make_label(main_panel, "off", 20, 66,
+                                     &lv_font_montserrat_18, COLOR_GREEN);
+    lv_obj_set_width(ui_ChargePhaseLabel, 185);
+    lv_obj_set_style_text_align(ui_ChargePhaseLabel, LV_TEXT_ALIGN_CENTER, 0);
     ui_CurrentLabel = make_label(main_panel, "--.- A", 20, 105,
                                  &lv_font_montserrat_28, COLOR_TEXT);
     lv_obj_set_width(ui_CurrentLabel, 185);
     lv_obj_set_style_text_align(ui_CurrentLabel, LV_TEXT_ALIGN_CENTER, 0);
-    ui_ChargePhaseLabel = make_label(main_panel, "off", 20, 142,
-                                     &lv_font_montserrat_16, COLOR_MUTED);
-    lv_obj_set_width(ui_ChargePhaseLabel, 185);
-    lv_obj_set_style_text_align(ui_ChargePhaseLabel, LV_TEXT_ALIGN_CENTER, 0);
+    lv_obj_t *current_caption = make_label(main_panel, "LADESTROM", 20, 142,
+                                           &lv_font_montserrat_14, COLOR_MUTED);
+    lv_obj_set_width(current_caption, 185);
+    lv_obj_set_style_text_align(current_caption, LV_TEXT_ALIGN_CENTER, 0);
 
     ui_TempLabel = make_label(main_panel, "--.-- kW", 250, 27,
                               &lv_font_montserrat_40, COLOR_TEXT);

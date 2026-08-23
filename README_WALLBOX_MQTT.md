@@ -51,7 +51,8 @@ Das Display zeigt aktuell:
 - Auswahl des Lademodus Manual / Auto / Scheduled
 - Ladeleistung in kW
 - tatsächlichen Ladestrom in A als Zahlenwert und Kreisdiagramm (0–16 A),
-  zusammen mit der Ladephase `1-ph`, `3-ph` oder `off`
+  oben mit der Ladephase `1-ph`, `3-ph` oder `off` und unten mit der
+  Beschriftung `LADESTROM`
 - Ladeenergie der aktuellen Session
 - kumulierte Gesamtenergie der Wallbox
 - Ladezeit
