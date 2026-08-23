@@ -5,7 +5,7 @@ lv_obj_t *ui_TempLabel;
 lv_obj_t *ui_HumiLabel;
 lv_obj_t *ui_CurrentArc;
 lv_obj_t *ui_CurrentLabel;
-lv_obj_t *ui_VoltageLabel;
+lv_obj_t *ui_ChargePhaseLabel;
 lv_obj_t *ui_EnergyTodayLabel;
 lv_obj_t *ui_ChargeTimeLabel;
 lv_obj_t *ui_TotalEnergyLabel;

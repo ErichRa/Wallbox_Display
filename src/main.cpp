@@ -370,13 +370,7 @@ void set_current_phase_label(float amps, const char *phase)
     char current_text[16];
     snprintf(current_text, sizeof(current_text), "%.1f A", amps);
     lv_label_set_text(ui_CurrentLabel, current_text);
-
-    const char *phase_text = phase;
-    if(strcmp(phase, "off") == 0) phase_text = "--";
-
-    char text[24];
-    snprintf(text, sizeof(text), "%.0f A  %s", amps, phase_text);
-    lv_label_set_text(ui_VoltageLabel, text);
+    lv_label_set_text(ui_ChargePhaseLabel, phase);
 }
 
 void set_session_energy_label(float kwh)
