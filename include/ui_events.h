@@ -15,6 +15,7 @@ void TurnOff(lv_event_t * e);
 void SelectManualMode(lv_event_t * e);
 void SelectAutoMode(lv_event_t * e);
 void SelectScheduledMode(lv_event_t * e);
+void SetChargeCurrent(lv_event_t * e);
 
 #ifdef __cplusplus
 } /*extern "C"*/

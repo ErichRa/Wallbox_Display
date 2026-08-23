@@ -77,6 +77,7 @@ LGFX lcd;
 
 int led = 0;
 int charge_mode_request = -1;
+int set_current_request = -1;
 
 namespace
 {
@@ -100,6 +101,8 @@ int pending_wallbox_status = -1;
 int displayed_wallbox_status = -2;
 int pending_charge_mode = -1;
 int displayed_charge_mode = -2;
+int pending_set_current_a = -1;
+int displayed_set_current_a = -2;
 float pending_power_watts = 0.0f;
 float displayed_power_watts = -1.0f;
 bool power_received = false;
@@ -422,6 +425,29 @@ void set_charge_mode_buttons(int mode)
     lv_obj_set_style_bg_color(ui_ManualModeButton, mode == 0 ? active : inactive, LV_PART_MAIN);
     lv_obj_set_style_bg_color(ui_AutoModeButton, mode == 1 ? active : inactive, LV_PART_MAIN);
     lv_obj_set_style_bg_color(ui_ScheduledModeButton, mode == 2 ? active : inactive, LV_PART_MAIN);
+
+    if(mode == 0) {
+        lv_obj_remove_state(ui_SetCurrentSlider, LV_STATE_DISABLED);
+        lv_obj_set_style_text_color(ui_SetCurrentLabel, lv_color_hex(0xA2A6AA), LV_PART_MAIN);
+    }
+    else {
+        lv_obj_add_state(ui_SetCurrentSlider, LV_STATE_DISABLED);
+        lv_obj_set_style_text_color(ui_SetCurrentLabel, lv_color_hex(0x64748B), LV_PART_MAIN);
+    }
+}
+
+void set_current_slider(int amps)
+{
+    if(amps < 6) amps = 6;
+    if(amps > 16) amps = 16;
+
+    if(lv_slider_get_value(ui_SetCurrentSlider) != amps) {
+        lv_slider_set_value(ui_SetCurrentSlider, amps, LV_ANIM_OFF);
+    }
+
+    char text[16];
+    snprintf(text, sizeof(text), "Soll: %d A", amps);
+    lv_label_set_text(ui_SetCurrentLabel, text);
 }
 
 void set_wallbox_status(int status)
@@ -516,6 +542,18 @@ void mqtt_callback(char *topic, byte *payload, unsigned int length)
             return;
         }
         Serial.printf("MQTT RX [%s] = %s\n", topic, buffer);
+        return;
+    }
+
+    if(strcmp(topic, TOPIC_SET_CURRENT) == 0) {
+        char *end = nullptr;
+        const long value = strtol(buffer, &end, 10);
+        if(end == buffer || *end != '\0' || value < 6 || value > 16) {
+            Serial.printf("MQTT Soll-Ladestrom ungueltig: %s\n", buffer);
+            return;
+        }
+        pending_set_current_a = static_cast<int>(value);
+        Serial.printf("MQTT RX [%s] = %ld A\n", topic, value);
         return;
     }
 
@@ -616,6 +654,12 @@ void update_display_from_pending_data()
         displayed_charge_mode = pending_charge_mode;
         set_charge_mode_buttons(displayed_charge_mode);
         Serial.printf("Display Lademodus aktualisiert: %d\n", displayed_charge_mode);
+    }
+
+    if(pending_set_current_a != displayed_set_current_a && pending_set_current_a >= 6) {
+        displayed_set_current_a = pending_set_current_a;
+        set_current_slider(displayed_set_current_a);
+        Serial.printf("Display Soll-Ladestrom aktualisiert: %d A\n", displayed_set_current_a);
     }
 
     float effective_power = power_received ? pending_power_watts : 0.0f;
@@ -728,6 +772,7 @@ void mqtt_service()
             mqtt.subscribe(TOPIC_WALLBOX_ONLINE, 0);
             mqtt.subscribe(TOPIC_STATUS, 0);
             mqtt.subscribe(TOPIC_CHARGE_MODE, 0);
+            mqtt.subscribe(TOPIC_SET_CURRENT, 0);
             mqtt.subscribe(TOPIC_POWER, 0);
             mqtt.subscribe(TOPIC_CURRENT, 0);
             mqtt.subscribe(TOPIC_CHARGE_PHASE, 0);
@@ -737,6 +782,7 @@ void mqtt_service()
             Serial.printf("MQTT subscribe: %s\n", TOPIC_WALLBOX_ONLINE);
             Serial.printf("MQTT subscribe: %s\n", TOPIC_STATUS);
             Serial.printf("MQTT subscribe: %s\n", TOPIC_CHARGE_MODE);
+            Serial.printf("MQTT subscribe: %s\n", TOPIC_SET_CURRENT);
             Serial.printf("MQTT subscribe: %s\n", TOPIC_POWER);
             Serial.printf("MQTT subscribe: %s\n", TOPIC_CURRENT);
             Serial.printf("MQTT subscribe: %s\n", TOPIC_CHARGE_PHASE);
@@ -768,6 +814,23 @@ void publish_charge_mode_command()
     if(mqtt.publish(TOPIC_CMD_CHARGE_MODE, mode)) {
         charge_mode_request = -1;
         Serial.printf("MQTT -> Lademodus %s\n", mode);
+    }
+}
+
+void publish_set_current_command()
+{
+    if(set_current_request < 6 ||
+       set_current_request > 16 ||
+       !mqtt.connected()) {
+        return;
+    }
+
+    char value[4];
+    snprintf(value, sizeof(value), "%d", set_current_request);
+
+    if(mqtt.publish(TOPIC_CMD_SET_CURRENT, value, false)) {
+        Serial.printf("MQTT -> Soll-Ladestrom %d A\n", set_current_request);
+        set_current_request = -1;
     }
 }
 
@@ -841,6 +904,7 @@ void setup()
     set_current_phase_label(0.0f, "off");
     set_session_energy_label(0.0f);
     set_session_duration_label(0U);
+    lv_label_set_text(ui_SetCurrentLabel, "Soll: -- A");
 
     mqtt.setServer(MQTT_HOST, MQTT_PORT);
     mqtt.setCallback(mqtt_callback);
@@ -857,6 +921,7 @@ void loop()
     web_service();
     publish_button_command();
     publish_charge_mode_command();
+    publish_set_current_command();
     update_display_from_pending_data();
 
     lv_timer_handler();

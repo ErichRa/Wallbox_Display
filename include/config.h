@@ -8,6 +8,7 @@
 #define TOPIC_WALLBOX_ONLINE   "wallbox/data/online"
 #define TOPIC_STATUS           "wallbox/data/status"
 #define TOPIC_CHARGE_MODE      "wallbox/data/charge_mode"
+#define TOPIC_SET_CURRENT      "wallbox/data/set_current_a"
 #define TOPIC_POWER            "wallbox/data/charging_power_w"
 #define TOPIC_CURRENT          "wallbox/data/charging_current_a"
 #define TOPIC_CHARGE_PHASE     "wallbox/data/charge_phase"
@@ -22,3 +23,4 @@
 #define TOPIC_CMD_START       "wallbox/cmd/start"
 #define TOPIC_CMD_STOP        "wallbox/cmd/stop"
 #define TOPIC_CMD_CHARGE_MODE "wallbox/cmd/charge_mode"
+#define TOPIC_CMD_SET_CURRENT "wallbox/cmd/set_current_a"
