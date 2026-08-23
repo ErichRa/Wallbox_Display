@@ -109,6 +109,9 @@ bool charge_phase_received = false;
 float pending_session_energy_kwh = 0.0f;
 float displayed_session_energy_kwh = -1.0f;
 bool session_energy_received = false;
+float pending_total_energy_kwh = 0.0f;
+float displayed_total_energy_kwh = -1.0f;
+bool total_energy_received = false;
 uint32_t pending_session_duration_s = 0;
 uint32_t displayed_session_duration_s = 0xFFFFFFFFUL;
 bool session_duration_received = false;
@@ -371,6 +374,15 @@ void set_session_energy_label(float kwh)
     lv_label_set_text(ui_EnergyTodayLabel, text);
 }
 
+void set_total_energy_label(float kwh)
+{
+    if(kwh < 0.0f) kwh = 0.0f;
+
+    char text[40];
+    snprintf(text, sizeof(text), "Energie gesamt: %.2f kWh", kwh);
+    lv_label_set_text(ui_TotalEnergyLabel, text);
+}
+
 void set_session_duration_label(uint32_t seconds)
 {
     const uint32_t hours = seconds / 3600U;
@@ -528,6 +540,19 @@ void mqtt_callback(char *topic, byte *payload, unsigned int length)
         return;
     }
 
+    if(strcmp(topic, TOPIC_TOTAL_ENERGY) == 0) {
+        char *end = nullptr;
+        const float value = strtof(buffer, &end);
+        if(end == buffer || *end != '\0' || value < 0.0f) {
+            Serial.printf("MQTT Gesamtenergie ungueltig: %s\n", buffer);
+            return;
+        }
+        Serial.printf("MQTT RX [%s] = %.3f kWh\n", topic, value);
+        pending_total_energy_kwh = value;
+        total_energy_received = true;
+        return;
+    }
+
     if(strcmp(topic, TOPIC_SESSION_DURATION) == 0) {
         char *end = nullptr;
         const unsigned long value = strtoul(buffer, &end, 10);
@@ -588,6 +613,13 @@ void update_display_from_pending_data()
         displayed_session_energy_kwh = effective_session_energy;
         set_session_energy_label(displayed_session_energy_kwh);
         Serial.printf("Display Ladeenergie aktualisiert: %.3f kWh\n", displayed_session_energy_kwh);
+    }
+
+    if(total_energy_received && pending_total_energy_kwh != displayed_total_energy_kwh) {
+        displayed_total_energy_kwh = pending_total_energy_kwh;
+        set_total_energy_label(displayed_total_energy_kwh);
+        Serial.printf("Display Gesamtenergie aktualisiert: %.3f kWh\n",
+                      displayed_total_energy_kwh);
     }
 
     const uint32_t effective_session_duration =
@@ -662,6 +694,7 @@ void mqtt_service()
             mqtt.subscribe(TOPIC_CURRENT, 0);
             mqtt.subscribe(TOPIC_CHARGE_PHASE, 0);
             mqtt.subscribe(TOPIC_SESSION_ENERGY, 0);
+            mqtt.subscribe(TOPIC_TOTAL_ENERGY, 0);
             mqtt.subscribe(TOPIC_SESSION_DURATION, 0);
             Serial.printf("MQTT subscribe: %s\n", TOPIC_WALLBOX_ONLINE);
             Serial.printf("MQTT subscribe: %s\n", TOPIC_STATUS);
@@ -669,6 +702,7 @@ void mqtt_service()
             Serial.printf("MQTT subscribe: %s\n", TOPIC_CURRENT);
             Serial.printf("MQTT subscribe: %s\n", TOPIC_CHARGE_PHASE);
             Serial.printf("MQTT subscribe: %s\n", TOPIC_SESSION_ENERGY);
+            Serial.printf("MQTT subscribe: %s\n", TOPIC_TOTAL_ENERGY);
             Serial.printf("MQTT subscribe: %s\n", TOPIC_SESSION_DURATION);
             publish_presence();
         }
