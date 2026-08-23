@@ -463,6 +463,25 @@ void set_control_enabled(lv_obj_t *control, bool enabled)
     }
 }
 
+void update_mode_controls()
+{
+    const bool mode_feedback_valid = displayed_wallbox_online == 1 &&
+                                     displayed_charge_mode >= 0 &&
+                                     displayed_charge_mode <= 2;
+
+    set_control_enabled(ui_ManualModeButton, mode_feedback_valid);
+    set_control_enabled(ui_AutoModeButton, mode_feedback_valid);
+    set_control_enabled(ui_ScheduledModeButton, mode_feedback_valid);
+
+    const bool set_current_enabled = mode_feedback_valid &&
+                                     displayed_charge_mode == 0;
+    set_control_enabled(ui_SetCurrentSlider, set_current_enabled);
+    lv_obj_set_style_text_color(ui_SetCurrentLabel,
+                                set_current_enabled ? lv_color_hex(0xA2A6AA)
+                                                    : lv_color_hex(0x64748B),
+                                LV_PART_MAIN);
+}
+
 void update_start_stop_controls()
 {
     bool start_enabled = false;
@@ -510,27 +529,20 @@ void set_wallbox_online_label(int online)
         lv_obj_set_style_text_color(ui_WallboxOnlineLabel, lv_color_hex(0xA2A6AA), LV_PART_MAIN);
     }
 
+    update_mode_controls();
     update_start_stop_controls();
 }
 
 void set_charge_mode_buttons(int mode)
 {
-    const lv_color_t inactive = lv_color_hex(0x334155);
+    const lv_color_t inactive = lv_color_hex(0x1E3A5F);
     const lv_color_t active = lv_color_hex(0x238EC4);
 
     lv_obj_set_style_bg_color(ui_ManualModeButton, mode == 0 ? active : inactive, LV_PART_MAIN);
     lv_obj_set_style_bg_color(ui_AutoModeButton, mode == 1 ? active : inactive, LV_PART_MAIN);
     lv_obj_set_style_bg_color(ui_ScheduledModeButton, mode == 2 ? active : inactive, LV_PART_MAIN);
 
-    if(mode == 0) {
-        lv_obj_remove_state(ui_SetCurrentSlider, LV_STATE_DISABLED);
-        lv_obj_set_style_text_color(ui_SetCurrentLabel, lv_color_hex(0xA2A6AA), LV_PART_MAIN);
-    }
-    else {
-        lv_obj_add_state(ui_SetCurrentSlider, LV_STATE_DISABLED);
-        lv_obj_set_style_text_color(ui_SetCurrentLabel, lv_color_hex(0x64748B), LV_PART_MAIN);
-    }
-
+    update_mode_controls();
     update_start_stop_controls();
 }
 

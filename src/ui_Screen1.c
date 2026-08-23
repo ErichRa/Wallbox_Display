@@ -149,6 +149,9 @@ void ui_Screen1_screen_init(void)
     lv_obj_add_event_cb(ui_ManualModeButton, ui_event_ManualModeButton, LV_EVENT_ALL, NULL);
     lv_obj_add_event_cb(ui_AutoModeButton, ui_event_AutoModeButton, LV_EVENT_ALL, NULL);
     lv_obj_add_event_cb(ui_ScheduledModeButton, ui_event_ScheduledModeButton, LV_EVENT_ALL, NULL);
+    lv_obj_add_state(ui_ManualModeButton, LV_STATE_DISABLED);
+    lv_obj_add_state(ui_AutoModeButton, LV_STATE_DISABLED);
+    lv_obj_add_state(ui_ScheduledModeButton, LV_STATE_DISABLED);
 
     lv_obj_t *divider = lv_obj_create(main_panel);
     lv_obj_set_pos(divider, 545, 20);
