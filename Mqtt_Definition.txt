@@ -2,7 +2,7 @@ MQTT-DEFINITION – WALLBOX DISPLAY
 ==================================
 
 Projekt: ErichRa/Wallbox_Display
-Stand: 21.08.2026
+Stand: 23.08.2026
 
 1. VERBINDLICHE TOPIC-STRUKTUR
 ------------------------------
@@ -61,6 +61,11 @@ Beispiel: 8.42
 Topic:   wallbox/data/session_duration_s
 Payload: Dauer des aktuellen bzw. zuletzt beendeten Ladevorgangs in Sekunden
 Beispiel: 5820
+
+Topic:   wallbox/data/total_energy_kwh
+Payload: kumulierte Gesamtenergie der Wallbox in kWh
+Victron: /Ac/Energy/Forward
+Beispiel: 482.63
 
 Die Ladezeit wird nicht mehr als fertig formatierter Text übertragen.
 Das CrowPanel und Home Assistant formatieren den Sekundenwert selbst.
