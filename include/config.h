@@ -11,6 +11,7 @@
 #define TOPIC_CURRENT          "wallbox/data/charging_current_a"
 #define TOPIC_CHARGE_PHASE     "wallbox/data/charge_phase"
 #define TOPIC_SESSION_ENERGY   "wallbox/data/session_energy_kwh"
+#define TOPIC_TOTAL_ENERGY     "wallbox/data/total_energy_kwh"
 #define TOPIC_SESSION_DURATION "wallbox/data/session_duration_s"
 
 // CrowPanel -> Node-RED / MQTT Explorer
