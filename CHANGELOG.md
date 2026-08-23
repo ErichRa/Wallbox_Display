@@ -19,7 +19,7 @@ Abgenommene stabile Version der Wallbox-Anzeige und -Steuerung.
 - kontextabhängige Freigabe von START und STOPP
 - START ist in `auto` und `scheduled` deaktiviert
 - STOPP ist nur während einer laufenden Ladung aktiv
-- Sollstromregler ist ausschließlich in `manual` verfügbar
+- Sollstromregler unter dem Ladestrom-Kreisdiagramm ist ausschließlich in `manual` verfügbar
 - deaktivierte Bedienelemente werden sichtbar grau dargestellt
 
 ### MQTT

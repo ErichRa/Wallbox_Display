@@ -140,6 +140,8 @@ Im manuellen Modus kann das CrowPanel einen ganzzahligen Soll-Ladestrom von
 6 bis 16 A an `wallbox/cmd/set_current_a` senden. Der Regler veröffentlicht
 erst beim Loslassen und ohne Retain. Node-RED prüft den Bereich und schreibt
 den Wert auf Victron `/SetCurrent` beziehungsweise Modbus-Register 5016.
+Anzeige und Regler für den Sollstrom befinden sich direkt unter dem
+Kreisdiagramm des tatsächlichen Ladestroms.
 
 Die Wallbox bestätigt den aktuellen Sollwert separat über
 `wallbox/data/set_current_a`. Dieser Rückmeldewert aktualisiert Anzeige und
