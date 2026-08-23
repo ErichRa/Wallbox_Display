@@ -19,6 +19,8 @@ lv_obj_t *ui_OffButton;
 lv_obj_t *ui_ManualModeButton;
 lv_obj_t *ui_AutoModeButton;
 lv_obj_t *ui_ScheduledModeButton;
+lv_obj_t *ui_SetCurrentSlider;
+lv_obj_t *ui_SetCurrentLabel;
 
 void ui_event_OnButton(lv_event_t *e)
 {
@@ -43,6 +45,11 @@ void ui_event_AutoModeButton(lv_event_t *e)
 void ui_event_ScheduledModeButton(lv_event_t *e)
 {
     if(lv_event_get_code(e) == LV_EVENT_RELEASED) SelectScheduledMode(e);
+}
+
+void ui_event_SetCurrentSlider(lv_event_t *e)
+{
+    if(lv_event_get_code(e) == LV_EVENT_RELEASED) SetChargeCurrent(e);
 }
 
 void ui_init(void)

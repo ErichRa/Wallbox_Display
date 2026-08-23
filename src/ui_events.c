@@ -8,6 +8,7 @@
 // Shares the requested output state with the main PlatformIO loop.
 extern int led;
 extern int charge_mode_request;
+extern int set_current_request;
 
 /*---------------------------------------------------------------
  * Handle dashboard commands
@@ -58,4 +59,14 @@ void SelectScheduledMode(lv_event_t * e)
 {
     (void)e;
     charge_mode_request = 2;
+}
+
+/**
+ * Request the selected manual-mode charging current.
+ * The slider value is published only after the user releases it.
+ */
+void SetChargeCurrent(lv_event_t * e)
+{
+    lv_obj_t *slider = (lv_obj_t *)lv_event_get_target(e);
+    set_current_request = (int)lv_slider_get_value(slider);
 }

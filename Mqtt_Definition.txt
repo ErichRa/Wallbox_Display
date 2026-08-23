@@ -53,8 +53,16 @@ Payload: aktuelle Ladeleistung in Watt
 Beispiel: 3534
 
 Topic:   wallbox/data/charging_current_a
-Payload: aktueller Ladestrom in Ampere
+Payload: tatsächlich fließender Ladestrom in Ampere
 Beispiel: 16
+
+Topic:   wallbox/data/set_current_a
+Payload: tatsächlich von der Wallbox bestätigter Soll-Ladestrom in Ampere
+Victron: /SetCurrent, Modbus-Register 5016
+Zulässiger Bereich im CrowPanel: 6 bis 16
+Beispiel: 8
+Hinweis: Node-RED veröffentlicht diesen Rückmeldewert retained. Der Wert ist
+vom tatsächlich fließenden Strom unter wallbox/data/charging_current_a getrennt.
 
 Topic:   wallbox/data/charge_phase
 Payload: Ladephase
@@ -126,6 +134,15 @@ Funktion: Node-RED übersetzt die Texte auf Victron /Mode:
 - scheduled = 2
 Hinweis: Dieses Befehls-Topic wird nicht retained veröffentlicht.
 
+Topic:   wallbox/cmd/set_current_a
+Payload: gewünschter Soll-Ladestrom als ganze Amperezahl
+Zulässiger Bereich: 6 bis 16
+Beispiel: 8
+Funktion: Node-RED prüft den Bereich und schreibt den Wert auf Victron
+/SetCurrent bzw. Modbus-Register 5016.
+Hinweis: Der Befehl wirkt nur im manuellen Lademodus und wird nicht retained
+veröffentlicht.
+
 
 5. EINSTELLUNGEN UND SOLLWERTE
 ------------------------------
@@ -136,7 +153,6 @@ Beispiele:
 
 wallbox/config/timer_duration_min
 wallbox/config/soc_limit_pct
-wallbox/config/charging_current_a
 
 Diese Topics werden erst verbindlich, wenn die jeweilige Funktion in
 Node-RED und im CrowPanel implementiert ist.

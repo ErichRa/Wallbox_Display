@@ -82,6 +82,7 @@ Das Display abonniert folgende Topics:
 | `wallbox/data/charge_mode` | bestätigter Lademodus | `auto` |
 | `wallbox/data/charging_power_w` | Ladeleistung in Watt | `3534` |
 | `wallbox/data/charging_current_a` | Ladestrom in Ampere | `16` |
+| `wallbox/data/set_current_a` | bestätigter Soll-Ladestrom in Ampere | `8` |
 | `wallbox/data/charge_phase` | Ladephase | `1-ph` |
 | `wallbox/data/session_energy_kwh` | Energie der aktuellen Ladesession in kWh | `8.42` |
 | `wallbox/data/total_energy_kwh` | Kumulierte Gesamtenergie der Wallbox in kWh | `482.63` |
@@ -103,6 +104,7 @@ Die Bedienknöpfe senden:
 wallbox/cmd/start
 wallbox/cmd/stop
 wallbox/cmd/charge_mode
+wallbox/cmd/set_current_a
 ```
 
 ### Lademodus
@@ -120,6 +122,18 @@ auf den Victron-Pfad `/Mode`:
 Der tatsächlich aktive Modus wird separat über
 `wallbox/data/charge_mode` zurückgemeldet. Erst diese Rückmeldung markiert
 die entsprechende Schaltfläche auf dem Display als aktiv.
+
+### Soll-Ladestrom
+
+Im manuellen Modus kann das CrowPanel einen ganzzahligen Soll-Ladestrom von
+6 bis 16 A an `wallbox/cmd/set_current_a` senden. Der Regler veröffentlicht
+erst beim Loslassen und ohne Retain. Node-RED prüft den Bereich und schreibt
+den Wert auf Victron `/SetCurrent` beziehungsweise Modbus-Register 5016.
+
+Die Wallbox bestätigt den aktuellen Sollwert separat über
+`wallbox/data/set_current_a`. Dieser Rückmeldewert aktualisiert Anzeige und
+Regler. `wallbox/data/charging_current_a` bleibt der davon unabhängige,
+tatsächlich fließende Ladestrom.
 
 ## 5. Wallbox-Status
 

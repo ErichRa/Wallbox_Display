@@ -148,6 +148,24 @@ void ui_Screen1_screen_init(void)
     ui_ChargeTimeLabel = make_label(main_panel, "--.-- h", 570, 172,
                                     &lv_font_montserrat_20, COLOR_TEXT);
 
+    ui_SetCurrentLabel = make_label(main_panel, "Soll: -- A", 570, 201,
+                                    &lv_font_montserrat_14, COLOR_MUTED);
+
+    ui_SetCurrentSlider = lv_slider_create(main_panel);
+    lv_obj_set_pos(ui_SetCurrentSlider, 655, 202);
+    lv_obj_set_size(ui_SetCurrentSlider, 82, 10);
+    lv_slider_set_range(ui_SetCurrentSlider, 6, 16);
+    lv_slider_set_value(ui_SetCurrentSlider, 6, LV_ANIM_OFF);
+    lv_obj_set_style_bg_color(ui_SetCurrentSlider, lv_color_hex(0x334155), LV_PART_MAIN);
+    lv_obj_set_style_bg_color(ui_SetCurrentSlider, COLOR_BLUE, LV_PART_INDICATOR);
+    lv_obj_set_style_bg_color(ui_SetCurrentSlider, COLOR_BLUE, LV_PART_KNOB);
+    lv_obj_set_style_pad_all(ui_SetCurrentSlider, 5, LV_PART_KNOB);
+    lv_obj_set_style_opa(ui_SetCurrentSlider, LV_OPA_40, LV_PART_MAIN | LV_STATE_DISABLED);
+    lv_obj_set_style_opa(ui_SetCurrentSlider, LV_OPA_40, LV_PART_INDICATOR | LV_STATE_DISABLED);
+    lv_obj_set_style_opa(ui_SetCurrentSlider, LV_OPA_40, LV_PART_KNOB | LV_STATE_DISABLED);
+    lv_obj_add_state(ui_SetCurrentSlider, LV_STATE_DISABLED);
+    lv_obj_add_event_cb(ui_SetCurrentSlider, ui_event_SetCurrentSlider, LV_EVENT_ALL, NULL);
+
     /* Start / Stop */
     ui_OnButton = lv_button_create(ui_Screen1);
     lv_obj_set_pos(ui_OnButton, 24, 334);

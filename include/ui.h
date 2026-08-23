@@ -30,12 +30,15 @@ extern lv_obj_t *ui_OffButton;
 extern lv_obj_t *ui_ManualModeButton;
 extern lv_obj_t *ui_AutoModeButton;
 extern lv_obj_t *ui_ScheduledModeButton;
+extern lv_obj_t *ui_SetCurrentSlider;
+extern lv_obj_t *ui_SetCurrentLabel;
 
 void ui_event_OnButton(lv_event_t *e);
 void ui_event_OffButton(lv_event_t *e);
 void ui_event_ManualModeButton(lv_event_t *e);
 void ui_event_AutoModeButton(lv_event_t *e);
 void ui_event_ScheduledModeButton(lv_event_t *e);
+void ui_event_SetCurrentSlider(lv_event_t *e);
 
 #ifdef __cplusplus
 } /* extern "C" */
