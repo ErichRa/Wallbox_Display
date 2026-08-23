@@ -76,6 +76,7 @@ LGFX lcd;
 #include "touch.h"
 
 int led = 0;
+int charge_mode_request = -1;
 
 namespace
 {
@@ -90,6 +91,7 @@ bool web_server_started = false;
 uint32_t last_wifi_try = 0;
 uint32_t last_mqtt_try = 0;
 int last_led_sent = -1;
+int last_charge_mode_request_sent = -1;
 
 lv_color_t *screen_frame_buffer = nullptr;
 
@@ -97,6 +99,8 @@ int pending_wallbox_online = -1;
 int displayed_wallbox_online = -2;
 int pending_wallbox_status = -1;
 int displayed_wallbox_status = -2;
+int pending_charge_mode = -1;
+int displayed_charge_mode = -2;
 float pending_power_watts = 0.0f;
 float displayed_power_watts = -1.0f;
 bool power_received = false;
@@ -411,6 +415,16 @@ void set_wallbox_online_label(int online)
     }
 }
 
+void set_charge_mode_buttons(int mode)
+{
+    const lv_color_t inactive = lv_color_hex(0x334155);
+    const lv_color_t active = lv_color_hex(0x238EC4);
+
+    lv_obj_set_style_bg_color(ui_ManualModeButton, mode == 0 ? active : inactive, LV_PART_MAIN);
+    lv_obj_set_style_bg_color(ui_AutoModeButton, mode == 1 ? active : inactive, LV_PART_MAIN);
+    lv_obj_set_style_bg_color(ui_ScheduledModeButton, mode == 2 ? active : inactive, LV_PART_MAIN);
+}
+
 void set_wallbox_status(int status)
 {
     const char *main_text = "STATUS UNBEKANNT";
@@ -485,6 +499,24 @@ void mqtt_callback(char *topic, byte *payload, unsigned int length)
         }
         Serial.printf("MQTT RX [%s] = %ld\n", topic, value);
         pending_wallbox_status = static_cast<int>(value);
+        return;
+    }
+
+    if(strcmp(topic, TOPIC_CHARGE_MODE) == 0) {
+        if(strcmp(buffer, "manual") == 0) {
+            pending_charge_mode = 0;
+        }
+        else if(strcmp(buffer, "auto") == 0) {
+            pending_charge_mode = 1;
+        }
+        else if(strcmp(buffer, "scheduled") == 0) {
+            pending_charge_mode = 2;
+        }
+        else {
+            Serial.printf("MQTT Lademodus ungueltig: %s\n", buffer);
+            return;
+        }
+        Serial.printf("MQTT RX [%s] = %s\n", topic, buffer);
         return;
     }
 
@@ -579,6 +611,12 @@ void update_display_from_pending_data()
         displayed_wallbox_status = pending_wallbox_status;
         set_wallbox_status(displayed_wallbox_status);
         Serial.printf("Display Status aktualisiert: %d\n", displayed_wallbox_status);
+    }
+
+    if(pending_charge_mode != displayed_charge_mode) {
+        displayed_charge_mode = pending_charge_mode;
+        set_charge_mode_buttons(displayed_charge_mode);
+        Serial.printf("Display Lademodus aktualisiert: %d\n", displayed_charge_mode);
     }
 
     float effective_power = power_received ? pending_power_watts : 0.0f;
@@ -690,6 +728,7 @@ void mqtt_service()
             Serial.println("MQTT verbunden");
             mqtt.subscribe(TOPIC_WALLBOX_ONLINE, 0);
             mqtt.subscribe(TOPIC_STATUS, 0);
+            mqtt.subscribe(TOPIC_CHARGE_MODE, 0);
             mqtt.subscribe(TOPIC_POWER, 0);
             mqtt.subscribe(TOPIC_CURRENT, 0);
             mqtt.subscribe(TOPIC_CHARGE_PHASE, 0);
@@ -698,6 +737,7 @@ void mqtt_service()
             mqtt.subscribe(TOPIC_SESSION_DURATION, 0);
             Serial.printf("MQTT subscribe: %s\n", TOPIC_WALLBOX_ONLINE);
             Serial.printf("MQTT subscribe: %s\n", TOPIC_STATUS);
+            Serial.printf("MQTT subscribe: %s\n", TOPIC_CHARGE_MODE);
             Serial.printf("MQTT subscribe: %s\n", TOPIC_POWER);
             Serial.printf("MQTT subscribe: %s\n", TOPIC_CURRENT);
             Serial.printf("MQTT subscribe: %s\n", TOPIC_CHARGE_PHASE);
@@ -713,6 +753,24 @@ void mqtt_service()
     }
 
     mqtt.loop();
+}
+
+void publish_charge_mode_command()
+{
+    if(charge_mode_request < 0 ||
+       charge_mode_request > 2 ||
+       charge_mode_request == last_charge_mode_request_sent ||
+       !mqtt.connected()) {
+        return;
+    }
+
+    const char *mode = charge_mode_request == 0 ? "manual" :
+                       charge_mode_request == 1 ? "auto" : "scheduled";
+
+    if(mqtt.publish(TOPIC_CMD_CHARGE_MODE, mode)) {
+        last_charge_mode_request_sent = charge_mode_request;
+        Serial.printf("MQTT -> Lademodus %s\n", mode);
+    }
 }
 
 void publish_button_command()
@@ -800,6 +858,7 @@ void loop()
     mqtt_service();
     web_service();
     publish_button_command();
+    publish_charge_mode_command();
     update_display_from_pending_data();
 
     lv_timer_handler();
