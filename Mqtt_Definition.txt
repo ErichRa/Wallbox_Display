@@ -39,6 +39,15 @@ Topic:   wallbox/data/status
 Payload: numerischer Victron-Wallbox-Status
 Beispiel: 2
 
+Topic:   wallbox/data/charge_mode
+Payload: tatsächlich von der Wallbox bestätigter Lademodus
+Victron: /Mode
+Zulässige Werte:
+- manual
+- auto
+- scheduled
+Hinweis: Node-RED veröffentlicht diesen Rückmeldewert retained.
+
 Topic:   wallbox/data/charging_power_w
 Payload: aktuelle Ladeleistung in Watt
 Beispiel: 3534
@@ -104,6 +113,18 @@ Funktion: Ladevorgang starten
 Topic:   wallbox/cmd/stop
 Payload: 1
 Funktion: Ladevorgang stoppen
+
+Topic:   wallbox/cmd/charge_mode
+Payload: gewünschter Lademodus
+Zulässige Werte:
+- manual
+- auto
+- scheduled
+Funktion: Node-RED übersetzt die Texte auf Victron /Mode:
+- manual = 0
+- auto = 1
+- scheduled = 2
+Hinweis: Dieses Befehls-Topic wird nicht retained veröffentlicht.
 
 
 5. EINSTELLUNGEN UND SOLLWERTE
