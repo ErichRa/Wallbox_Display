@@ -82,9 +82,23 @@ int set_current_request = -1;
 namespace
 {
 constexpr uint8_t BACKLIGHT_PIN = 2;
+constexpr uint32_t BACKLIGHT_PWM_FREQUENCY_HZ = 5000;
+constexpr uint8_t BACKLIGHT_PWM_RESOLUTION_BITS = 8;
+constexpr uint8_t BACKLIGHT_ACTIVE_PERCENT = 100;
+constexpr uint8_t BACKLIGHT_DIMMED_PERCENT = 20;
+constexpr uint32_t BACKLIGHT_DIM_DELAY_MS = 2UL * 60UL * 1000UL;
+constexpr uint32_t BACKLIGHT_OFF_DELAY_MS = 10UL * 60UL * 1000UL;
 constexpr uint32_t SCREEN_WIDTH = 800;
 constexpr uint32_t SCREEN_HEIGHT = 480;
 constexpr uint32_t CHARGE_MODE_CONFIRM_TIMEOUT_MS = 10000;
+
+enum class BacklightState : uint8_t
+{
+    Unknown,
+    Active,
+    Dimmed,
+    Off
+};
 
 WiFiClient wifi_client;
 PubSubClient mqtt(wifi_client);
@@ -93,6 +107,10 @@ bool web_server_started = false;
 uint32_t last_wifi_try = 0;
 uint32_t last_mqtt_try = 0;
 int last_led_sent = -1;
+bool backlight_pwm_ready = false;
+bool suppress_touch_until_release = false;
+uint32_t last_user_activity_ms = 0;
+BacklightState backlight_state = BacklightState::Unknown;
 
 lv_color_t *screen_frame_buffer = nullptr;
 
@@ -140,6 +158,60 @@ uint32_t tick_get()
     return millis();
 }
 
+void set_backlight_percent(uint8_t percent)
+{
+    if(percent > 100) percent = 100;
+
+    if(backlight_pwm_ready) {
+        const uint32_t duty = (static_cast<uint32_t>(percent) * 255U + 50U) / 100U;
+        ledcWrite(BACKLIGHT_PIN, duty);
+    }
+    else {
+        digitalWrite(BACKLIGHT_PIN, percent > 0 ? HIGH : LOW);
+    }
+}
+
+void set_backlight_state(BacklightState state)
+{
+    if(state == backlight_state) return;
+    backlight_state = state;
+
+    switch(state) {
+        case BacklightState::Active:
+            set_backlight_percent(BACKLIGHT_ACTIVE_PERCENT);
+            break;
+        case BacklightState::Dimmed:
+            set_backlight_percent(BACKLIGHT_DIMMED_PERCENT);
+            break;
+        case BacklightState::Off:
+            set_backlight_percent(0);
+            break;
+        case BacklightState::Unknown:
+            break;
+    }
+}
+
+void register_user_activity()
+{
+    last_user_activity_ms = millis();
+    set_backlight_state(BacklightState::Active);
+}
+
+void backlight_service()
+{
+    const uint32_t inactive_ms = millis() - last_user_activity_ms;
+
+    if(inactive_ms >= BACKLIGHT_OFF_DELAY_MS) {
+        set_backlight_state(BacklightState::Off);
+    }
+    else if(inactive_ms >= BACKLIGHT_DIM_DELAY_MS) {
+        set_backlight_state(BacklightState::Dimmed);
+    }
+    else {
+        set_backlight_state(BacklightState::Active);
+    }
+}
+
 void display_flush(lv_display_t *display, const lv_area_t *area, uint8_t *pixel_map)
 {
     (void)area;
@@ -155,9 +227,22 @@ void touchpad_read(lv_indev_t *indev, lv_indev_data_t *data)
     data->state = LV_INDEV_STATE_RELEASED;
 
     if(touch_touched()) {
+        if(backlight_state == BacklightState::Off) {
+            register_user_activity();
+            suppress_touch_until_release = true;
+        }
+        else {
+            register_user_activity();
+        }
+
+        if(suppress_touch_until_release) return;
+
         data->state = LV_INDEV_STATE_PRESSED;
         data->point.x = touch_last_x;
         data->point.y = touch_last_y;
+    }
+    else {
+        suppress_touch_until_release = false;
     }
 }
 
@@ -1079,7 +1164,14 @@ void setup()
     lv_indev_set_read_cb(touchpad, touchpad_read);
 
     pinMode(BACKLIGHT_PIN, OUTPUT);
-    digitalWrite(BACKLIGHT_PIN, HIGH);
+    backlight_pwm_ready = ledcAttach(BACKLIGHT_PIN,
+                                    BACKLIGHT_PWM_FREQUENCY_HZ,
+                                    BACKLIGHT_PWM_RESOLUTION_BITS);
+    if(!backlight_pwm_ready) {
+        Serial.println("Backlight PWM konnte nicht initialisiert werden");
+    }
+    last_user_activity_ms = millis();
+    set_backlight_state(BacklightState::Active);
 
     ui_init();
     lv_label_set_text(ui_HumiLabel, "MQTT WARTET");
@@ -1108,6 +1200,7 @@ void loop()
     publish_set_current_command();
     update_display_from_pending_data();
     update_charge_mode_confirmation_timeout();
+    backlight_service();
 
     lv_timer_handler();
     delay(10);
