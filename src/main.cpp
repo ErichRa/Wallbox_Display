@@ -91,7 +91,6 @@ bool web_server_started = false;
 uint32_t last_wifi_try = 0;
 uint32_t last_mqtt_try = 0;
 int last_led_sent = -1;
-int last_charge_mode_request_sent = -1;
 
 lv_color_t *screen_frame_buffer = nullptr;
 
@@ -759,7 +758,6 @@ void publish_charge_mode_command()
 {
     if(charge_mode_request < 0 ||
        charge_mode_request > 2 ||
-       charge_mode_request == last_charge_mode_request_sent ||
        !mqtt.connected()) {
         return;
     }
@@ -768,7 +766,7 @@ void publish_charge_mode_command()
                        charge_mode_request == 1 ? "auto" : "scheduled";
 
     if(mqtt.publish(TOPIC_CMD_CHARGE_MODE, mode)) {
-        last_charge_mode_request_sent = charge_mode_request;
+        charge_mode_request = -1;
         Serial.printf("MQTT -> Lademodus %s\n", mode);
     }
 }
