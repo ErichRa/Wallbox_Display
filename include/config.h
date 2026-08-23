@@ -7,6 +7,7 @@
 // Node-RED -> CrowPanel
 #define TOPIC_WALLBOX_ONLINE   "wallbox/data/online"
 #define TOPIC_STATUS           "wallbox/data/status"
+#define TOPIC_CHARGE_MODE      "wallbox/data/charge_mode"
 #define TOPIC_POWER            "wallbox/data/charging_power_w"
 #define TOPIC_CURRENT          "wallbox/data/charging_current_a"
 #define TOPIC_CHARGE_PHASE     "wallbox/data/charge_phase"
@@ -18,5 +19,6 @@
 #define TOPIC_ONLINE         "wallbox/display/online"
 #define TOPIC_IP             "wallbox/display/ip"
 #define TOPIC_RSSI           "wallbox/display/rssi"
-#define TOPIC_CMD_START      "wallbox/cmd/start"
-#define TOPIC_CMD_STOP       "wallbox/cmd/stop"
+#define TOPIC_CMD_START       "wallbox/cmd/start"
+#define TOPIC_CMD_STOP        "wallbox/cmd/stop"
+#define TOPIC_CMD_CHARGE_MODE "wallbox/cmd/charge_mode"
