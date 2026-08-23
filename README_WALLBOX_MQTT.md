@@ -55,6 +55,7 @@ Das Display zeigt aktuell:
 - Ladeenergie der aktuellen Session
 - kumulierte Gesamtenergie der Wallbox
 - Ladezeit
+- Ladebeginn und Ladeende mit Datum und Uhrzeit
 - WLAN-RSSI
 - MQTT-Verbindungsstatus
 - IP-Adresse
@@ -87,6 +88,8 @@ Das Display abonniert folgende Topics:
 | `wallbox/data/session_energy_kwh` | Energie der aktuellen Ladesession in kWh | `8.42` |
 | `wallbox/data/total_energy_kwh` | Kumulierte Gesamtenergie der Wallbox in kWh | `482.63` |
 | `wallbox/data/session_duration_s` | Ladedauer in Sekunden | `5820` |
+| `wallbox/session/start` | Beginn der aktuellen/letzten Session als ISO-8601-Zeitstempel | `2026-08-23T13:08:26+02:00` |
+| `wallbox/session/end` | Ende als ISO-8601-Zeitstempel oder während des Ladens `---` | `---` |
 
 ## 4. MQTT – CrowPanel → Node-RED
 

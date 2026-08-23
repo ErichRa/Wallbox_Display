@@ -92,6 +92,18 @@ Beispiel: 5820 Sekunden entsprechen 01:37 h.
 3. ABGESCHLOSSENE LADVORGÄNGE
 -----------------------------
 
+Topic:   wallbox/session/start
+Payload: Beginn des aktuellen bzw. zuletzt erkannten Ladevorgangs als
+ISO-8601-Zeitstempel mit lokaler Zeitzone
+Beispiel: 2026-08-23T13:08:26+02:00
+Hinweis: Node-RED veröffentlicht diesen Wert retained.
+
+Topic:   wallbox/session/end
+Payload: Ende des zuletzt beendeten Ladevorgangs als ISO-8601-Zeitstempel
+oder --- während ein Ladevorgang läuft
+Beispiel: 2026-08-23T14:42:05+02:00
+Hinweis: Node-RED veröffentlicht diesen Wert retained.
+
 Zusammengehörige Daten eines abgeschlossenen Ladevorgangs werden unter
 folgendem Topic als JSON veröffentlicht:
 

@@ -121,6 +121,12 @@ bool total_energy_received = false;
 uint32_t pending_session_duration_s = 0;
 uint32_t displayed_session_duration_s = 0xFFFFFFFFUL;
 bool session_duration_received = false;
+char pending_session_start[32] = "---";
+char displayed_session_start[32] = "";
+bool session_start_received = false;
+char pending_session_end[32] = "---";
+char displayed_session_end[32] = "";
+bool session_end_received = false;
 
 lv_obj_t *power_decimal_label = nullptr;
 lv_obj_t *power_fraction_label = nullptr;
@@ -403,6 +409,34 @@ void set_session_duration_label(uint32_t seconds)
     lv_label_set_text(ui_ChargeTimeLabel, text);
 }
 
+void format_session_datetime(const char *value, char *formatted, size_t formatted_size)
+{
+    if(strcmp(value, "---") == 0) {
+        snprintf(formatted, formatted_size, "---");
+        return;
+    }
+
+    if(strlen(value) < 16 ||
+       value[4] != '-' || value[7] != '-' ||
+       value[10] != 'T' || value[13] != ':') {
+        snprintf(formatted, formatted_size, "---");
+        return;
+    }
+
+    snprintf(formatted, formatted_size,
+             "%c%c.%c%c.%c%c%c%c %c%c:%c%c",
+             value[8], value[9], value[5], value[6],
+             value[0], value[1], value[2], value[3],
+             value[11], value[12], value[14], value[15]);
+}
+
+void set_session_datetime_label(lv_obj_t *label, const char *value)
+{
+    char formatted[24];
+    format_session_datetime(value, formatted, sizeof(formatted));
+    lv_label_set_text(label, formatted);
+}
+
 void set_wallbox_online_label(int online)
 {
     if(online == 1) {
@@ -500,7 +534,7 @@ bool payload_to_buffer(byte *payload, unsigned int length, char *buffer, size_t 
 
 void mqtt_callback(char *topic, byte *payload, unsigned int length)
 {
-    char buffer[24];
+    char buffer[40];
     if(!payload_to_buffer(payload, length, buffer, sizeof(buffer))) {
         Serial.printf("MQTT Payload zu lang [%s]\n", topic);
         return;
@@ -636,6 +670,20 @@ void mqtt_callback(char *topic, byte *payload, unsigned int length)
         Serial.printf("MQTT RX [%s] = %lu s\n", topic, value);
         return;
     }
+
+    if(strcmp(topic, TOPIC_SESSION_START) == 0) {
+        snprintf(pending_session_start, sizeof(pending_session_start), "%s", buffer);
+        session_start_received = true;
+        Serial.printf("MQTT RX [%s] = %s\n", topic, pending_session_start);
+        return;
+    }
+
+    if(strcmp(topic, TOPIC_SESSION_END) == 0) {
+        snprintf(pending_session_end, sizeof(pending_session_end), "%s", buffer);
+        session_end_received = true;
+        Serial.printf("MQTT RX [%s] = %s\n", topic, pending_session_end);
+        return;
+    }
 }
 
 void update_display_from_pending_data()
@@ -713,6 +761,21 @@ void update_display_from_pending_data()
         Serial.printf("Display Ladedauer aktualisiert: %lu s\n",
                       static_cast<unsigned long>(displayed_session_duration_s));
     }
+
+    const char *effective_start = session_start_received ? pending_session_start : "---";
+    if(strcmp(effective_start, displayed_session_start) != 0) {
+        snprintf(displayed_session_start, sizeof(displayed_session_start), "%s", effective_start);
+        set_session_datetime_label(ui_SessionStartLabel, displayed_session_start);
+    }
+
+    const bool session_running = displayed_wallbox_status == 2 ||
+                                 (displayed_wallbox_status >= 21 && displayed_wallbox_status <= 24);
+    const char *effective_end = session_running ? "---" :
+                                (session_end_received ? pending_session_end : "---");
+    if(strcmp(effective_end, displayed_session_end) != 0) {
+        snprintf(displayed_session_end, sizeof(displayed_session_end), "%s", effective_end);
+        set_session_datetime_label(ui_SessionEndLabel, displayed_session_end);
+    }
 }
 
 void wifi_service()
@@ -781,6 +844,8 @@ void mqtt_service()
             mqtt.subscribe(TOPIC_SESSION_ENERGY, 0);
             mqtt.subscribe(TOPIC_TOTAL_ENERGY, 0);
             mqtt.subscribe(TOPIC_SESSION_DURATION, 0);
+            mqtt.subscribe(TOPIC_SESSION_START, 0);
+            mqtt.subscribe(TOPIC_SESSION_END, 0);
             Serial.printf("MQTT subscribe: %s\n", TOPIC_WALLBOX_ONLINE);
             Serial.printf("MQTT subscribe: %s\n", TOPIC_STATUS);
             Serial.printf("MQTT subscribe: %s\n", TOPIC_CHARGE_MODE);
@@ -791,6 +856,8 @@ void mqtt_service()
             Serial.printf("MQTT subscribe: %s\n", TOPIC_SESSION_ENERGY);
             Serial.printf("MQTT subscribe: %s\n", TOPIC_TOTAL_ENERGY);
             Serial.printf("MQTT subscribe: %s\n", TOPIC_SESSION_DURATION);
+            Serial.printf("MQTT subscribe: %s\n", TOPIC_SESSION_START);
+            Serial.printf("MQTT subscribe: %s\n", TOPIC_SESSION_END);
             publish_presence();
         }
         else {

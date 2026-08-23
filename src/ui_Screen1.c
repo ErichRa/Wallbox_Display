@@ -144,19 +144,27 @@ void ui_Screen1_screen_init(void)
     lv_obj_set_style_bg_opa(divider, LV_OPA_COVER, 0);
     lv_obj_set_style_border_width(divider, 0, 0);
 
-    make_label(main_panel, "Ladeenergie", 570, 30, &lv_font_montserrat_14, COLOR_YELLOW);
-    ui_EnergyTodayLabel = make_label(main_panel, "--.-- kWh", 570, 51,
+    make_label(main_panel, "Ladeenergie", 570, 12, &lv_font_montserrat_14, COLOR_YELLOW);
+    ui_EnergyTodayLabel = make_label(main_panel, "--.-- kWh", 570, 31,
                                      &lv_font_montserrat_20, COLOR_TEXT);
 
-    make_label(main_panel, "Ladezeit", 570, 92, &lv_font_montserrat_14, COLOR_MUTED);
-    ui_ChargeTimeLabel = make_label(main_panel, "--.-- h", 570, 113,
+    make_label(main_panel, "Ladezeit", 570, 59, &lv_font_montserrat_14, COLOR_MUTED);
+    ui_ChargeTimeLabel = make_label(main_panel, "--.-- h", 570, 78,
                                     &lv_font_montserrat_20, COLOR_TEXT);
 
-    ui_SetCurrentLabel = make_label(main_panel, "Soll: -- A", 570, 171,
+    make_label(main_panel, "Ladebeginn", 570, 108, &lv_font_montserrat_14, COLOR_MUTED);
+    ui_SessionStartLabel = make_label(main_panel, "---", 570, 124,
+                                      &lv_font_montserrat_14, COLOR_TEXT);
+
+    make_label(main_panel, "Ladeende", 570, 146, &lv_font_montserrat_14, COLOR_MUTED);
+    ui_SessionEndLabel = make_label(main_panel, "---", 570, 162,
+                                    &lv_font_montserrat_14, COLOR_TEXT);
+
+    ui_SetCurrentLabel = make_label(main_panel, "Soll: -- A", 570, 201,
                                     &lv_font_montserrat_14, COLOR_MUTED);
 
     ui_SetCurrentSlider = lv_slider_create(main_panel);
-    lv_obj_set_pos(ui_SetCurrentSlider, 655, 172);
+    lv_obj_set_pos(ui_SetCurrentSlider, 655, 202);
     lv_obj_set_size(ui_SetCurrentSlider, 82, 10);
     lv_slider_set_range(ui_SetCurrentSlider, 6, 16);
     lv_slider_set_value(ui_SetCurrentSlider, 6, LV_ANIM_OFF);

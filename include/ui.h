@@ -19,6 +19,8 @@ extern lv_obj_t *ui_CurrentLabel;
 extern lv_obj_t *ui_ChargePhaseLabel;
 extern lv_obj_t *ui_EnergyTodayLabel;
 extern lv_obj_t *ui_ChargeTimeLabel;
+extern lv_obj_t *ui_SessionStartLabel;
+extern lv_obj_t *ui_SessionEndLabel;
 extern lv_obj_t *ui_TotalEnergyLabel;
 extern lv_obj_t *ui_WallboxOnlineLabel;
 extern lv_obj_t *ui_VehicleLabel;
