@@ -43,6 +43,8 @@ static void style_button(lv_obj_t *button, lv_color_t color)
     lv_obj_set_style_radius(button, 14, 0);
     lv_obj_set_style_shadow_width(button, 0, 0);
     lv_obj_set_style_bg_color(button, lv_color_darken(color, LV_OPA_20), LV_STATE_PRESSED);
+    lv_obj_set_style_bg_color(button, lv_color_hex(0x4B5563), LV_STATE_DISABLED);
+    lv_obj_set_style_opa(button, LV_OPA_50, LV_STATE_DISABLED);
 }
 
 void ui_Screen1_screen_init(void)
@@ -197,6 +199,8 @@ void ui_Screen1_screen_init(void)
 
     lv_obj_add_event_cb(ui_OnButton, ui_event_OnButton, LV_EVENT_ALL, NULL);
     lv_obj_add_event_cb(ui_OffButton, ui_event_OffButton, LV_EVENT_ALL, NULL);
+    lv_obj_add_state(ui_OnButton, LV_STATE_DISABLED);
+    lv_obj_add_state(ui_OffButton, LV_STATE_DISABLED);
 
     /* Footer */
     lv_obj_t *footer = make_panel(ui_Screen1, 24, 438, 752, 34);
