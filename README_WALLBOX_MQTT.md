@@ -65,6 +65,11 @@ Das Display zeigt aktuell:
 
 Die Bedienfreigabe folgt dem bestätigten Modus und Wallbox-Status:
 
+- der bestätigte Lademodus wird blau dargestellt
+- die beiden anderen verfügbaren Lademodi bleiben dunkel, vollständig sichtbar
+  und auswählbar
+- nur bei fehlender Wallbox- oder Modusrückmeldung werden alle drei
+  Modusschaltflächen grau dargestellt und gesperrt
 - `MANUAL`: im Stillstand START aktiv, während der Ladung STOP aktiv
 - `AUTO` und `SCHEDULED`: START immer deaktiviert, STOP nur während der Ladung aktiv
 - bei fehlender Wallbox-Rückmeldung, Fehlerstatus oder laufendem Beenden sind beide Tasten deaktiviert
