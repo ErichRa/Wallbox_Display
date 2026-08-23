@@ -11,6 +11,7 @@ lv_obj_t *ui_ChargeTimeLabel;
 lv_obj_t *ui_SessionStartLabel;
 lv_obj_t *ui_SessionEndLabel;
 lv_obj_t *ui_TotalEnergyLabel;
+lv_obj_t *ui_ClockLabel;
 lv_obj_t *ui_WallboxOnlineLabel;
 lv_obj_t *ui_VehicleLabel;
 lv_obj_t *ui_WifiLabel;
