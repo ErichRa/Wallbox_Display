@@ -62,6 +62,12 @@ Das Display zeigt aktuell:
 - IP-Adresse
 - START- und STOP-Schaltfläche
 
+Die Bedienfreigabe folgt dem bestätigten Modus und Wallbox-Status:
+
+- `MANUAL`: im Stillstand START aktiv, während der Ladung STOP aktiv
+- `AUTO` und `SCHEDULED`: START immer deaktiviert, STOP nur während der Ladung aktiv
+- bei fehlender Wallbox-Rückmeldung, Fehlerstatus oder laufendem Beenden sind beide Tasten deaktiviert
+
 Geplante Ablage des aktuellen Screenshots im Repository:
 
 ```text

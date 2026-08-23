@@ -437,6 +437,61 @@ void set_session_datetime_label(lv_obj_t *label, const char *value)
     lv_label_set_text(label, formatted);
 }
 
+bool status_is_charging(int status)
+{
+    return status == 2 ||
+           status == 21 ||
+           status == 22 ||
+           status == 23;
+}
+
+bool status_has_control_fault(int status)
+{
+    return status >= 8 && status <= 19;
+}
+
+void set_control_enabled(lv_obj_t *control, bool enabled)
+{
+    if(enabled) {
+        lv_obj_remove_state(control, LV_STATE_DISABLED);
+    }
+    else {
+        lv_obj_add_state(control, LV_STATE_DISABLED);
+    }
+}
+
+void update_start_stop_controls()
+{
+    bool start_enabled = false;
+    bool stop_enabled = false;
+
+    const bool feedback_valid = displayed_wallbox_online == 1 &&
+                                displayed_charge_mode >= 0 &&
+                                displayed_charge_mode <= 2 &&
+                                displayed_wallbox_status >= 0;
+
+    if(feedback_valid &&
+       !status_has_control_fault(displayed_wallbox_status) &&
+       displayed_wallbox_status != 24) {
+        const bool charging = status_is_charging(displayed_wallbox_status);
+
+        if(displayed_charge_mode == 0) {
+            // Manual: Start und Stop wechseln entsprechend dem Ladezustand.
+            start_enabled = !charging;
+            stop_enabled = charging;
+        }
+        else {
+            // Auto/Scheduled starten selbststaendig; nur eine laufende
+            // Ladung darf manuell gestoppt werden.
+            start_enabled = false;
+            stop_enabled = charging;
+        }
+    }
+
+    set_control_enabled(ui_OnButton, start_enabled);
+    set_control_enabled(ui_OffButton, stop_enabled);
+}
+
 void set_wallbox_online_label(int online)
 {
     if(online == 1) {
@@ -451,6 +506,8 @@ void set_wallbox_online_label(int online)
         lv_label_set_text(ui_WallboxOnlineLabel, "Wallbox --");
         lv_obj_set_style_text_color(ui_WallboxOnlineLabel, lv_color_hex(0xA2A6AA), LV_PART_MAIN);
     }
+
+    update_start_stop_controls();
 }
 
 void set_charge_mode_buttons(int mode)
@@ -470,6 +527,8 @@ void set_charge_mode_buttons(int mode)
         lv_obj_add_state(ui_SetCurrentSlider, LV_STATE_DISABLED);
         lv_obj_set_style_text_color(ui_SetCurrentLabel, lv_color_hex(0x64748B), LV_PART_MAIN);
     }
+
+    update_start_stop_controls();
 }
 
 void set_current_slider(int amps)
@@ -521,6 +580,7 @@ void set_wallbox_status(int status)
 
     lv_label_set_text(ui_HumiLabel, main_text);
     lv_label_set_text(ui_VehicleLabel, vehicle_text);
+    update_start_stop_controls();
 }
 
 bool payload_to_buffer(byte *payload, unsigned int length, char *buffer, size_t buffer_size)
