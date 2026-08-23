@@ -76,6 +76,17 @@ Die Bedienfreigabe folgt dem bestätigten Modus und Wallbox-Status:
 - `AUTO` und `SCHEDULED`: START immer deaktiviert, STOP nur während der Ladung aktiv
 - bei fehlender Wallbox-Rückmeldung, Fehlerstatus oder laufendem Beenden sind beide Tasten deaktiviert
 
+### Hintergrundbeleuchtung
+
+Nach zwei Minuten ohne Berührung wird die Hintergrundbeleuchtung automatisch
+auf 20 Prozent reduziert. Nach zehn Minuten wird sie vollständig ausgeschaltet.
+ESP32, WLAN, MQTT und die Displaydarstellung bleiben dabei aktiv.
+
+Eine Berührung des gedimmten Displays stellt sofort die volle Helligkeit wieder
+her und wird normal verarbeitet. Bei ausgeschalteter Beleuchtung dient die erste
+Berührung ausschließlich zum Aufwecken; erst die folgende Berührung bedient ein
+Element.
+
 Geplante Ablage des aktuellen Screenshots im Repository:
 
 ```text
