@@ -48,6 +48,7 @@ pio device monitor
 Das Display zeigt aktuell:
 
 - Wallbox-Status
+- Auswahl des Lademodus Manual / Auto / Scheduled
 - Ladeleistung in kW
 - Ladestrom in A
 - Ladephase 1-ph / 3-ph
@@ -78,6 +79,7 @@ Das Display abonniert folgende Topics:
 | Topic | Bedeutung | Beispiel |
 | --- | --- | --- |
 | `wallbox/data/status` | numerischer Wallbox-Status | `2` |
+| `wallbox/data/charge_mode` | bestätigter Lademodus | `auto` |
 | `wallbox/data/charging_power_w` | Ladeleistung in Watt | `3534` |
 | `wallbox/data/charging_current_a` | Ladestrom in Ampere | `16` |
 | `wallbox/data/charge_phase` | Ladephase | `1-ph` |
@@ -100,7 +102,24 @@ Die Bedienknöpfe senden:
 ```text
 wallbox/cmd/start
 wallbox/cmd/stop
+wallbox/cmd/charge_mode
 ```
+
+### Lademodus
+
+Das CrowPanel sendet den gewünschten Modus als Text an
+`wallbox/cmd/charge_mode`. Node-RED schreibt den zugehörigen Zahlenwert
+auf den Victron-Pfad `/Mode`:
+
+| MQTT | Victron |
+| --- | --- |
+| `manual` | `0` |
+| `auto` | `1` |
+| `scheduled` | `2` |
+
+Der tatsächlich aktive Modus wird separat über
+`wallbox/data/charge_mode` zurückgemeldet. Erst diese Rückmeldung markiert
+die entsprechende Schaltfläche auf dem Display als aktiv.
 
 ## 5. Wallbox-Status
 
@@ -273,6 +292,7 @@ Der aktuelle Funktionsumfang umfasst:
 - WLAN-Verbindung
 - MQTT-Verbindung
 - START / STOP über MQTT
+- Umschaltung Manual / Auto / Scheduled mit bestätigter Zustandsanzeige
 - numerische Victron-Statusauswertung
 - Ladeleistungsanzeige
 - Ladestromanzeige ohne Nachkommastellen

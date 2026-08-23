@@ -16,6 +16,9 @@ lv_obj_t *ui_MqttLabel;
 lv_obj_t *ui_IpLabel;
 lv_obj_t *ui_OnButton;
 lv_obj_t *ui_OffButton;
+lv_obj_t *ui_ManualModeButton;
+lv_obj_t *ui_AutoModeButton;
+lv_obj_t *ui_ScheduledModeButton;
 
 void ui_event_OnButton(lv_event_t *e)
 {
@@ -25,6 +28,21 @@ void ui_event_OnButton(lv_event_t *e)
 void ui_event_OffButton(lv_event_t *e)
 {
     if(lv_event_get_code(e) == LV_EVENT_RELEASED) TurnOff(e);
+}
+
+void ui_event_ManualModeButton(lv_event_t *e)
+{
+    if(lv_event_get_code(e) == LV_EVENT_RELEASED) SelectManualMode(e);
+}
+
+void ui_event_AutoModeButton(lv_event_t *e)
+{
+    if(lv_event_get_code(e) == LV_EVENT_RELEASED) SelectAutoMode(e);
+}
+
+void ui_event_ScheduledModeButton(lv_event_t *e)
+{
+    if(lv_event_get_code(e) == LV_EVENT_RELEASED) SelectScheduledMode(e);
 }
 
 void ui_init(void)
