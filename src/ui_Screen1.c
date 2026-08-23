@@ -110,12 +110,17 @@ void ui_Screen1_screen_init(void)
 
     ui_TempLabel = make_label(main_panel, "--.-- kW", 250, 27,
                               &lv_font_montserrat_40, COLOR_TEXT);
-    lv_obj_set_width(ui_TempLabel, 210);
+    lv_obj_set_width(ui_TempLabel, 276);
+    lv_obj_set_style_text_align(ui_TempLabel, LV_TEXT_ALIGN_RIGHT, 0);
     lv_label_set_long_mode(ui_TempLabel, LV_LABEL_LONG_CLIP);
     ui_HumiLabel = make_label(main_panel, "BEREIT", 250, 87,
                               &lv_font_montserrat_28, COLOR_GREEN);
+    lv_obj_set_width(ui_HumiLabel, 276);
+    lv_obj_set_style_text_align(ui_HumiLabel, LV_TEXT_ALIGN_RIGHT, 0);
     ui_VehicleLabel = make_label(main_panel, "Fahrzeug nicht verbunden", 250, 136,
                                  &lv_font_montserrat_18, COLOR_MUTED);
+    lv_obj_set_width(ui_VehicleLabel, 276);
+    lv_obj_set_style_text_align(ui_VehicleLabel, LV_TEXT_ALIGN_RIGHT, 0);
 
     ui_ManualModeButton = lv_button_create(main_panel);
     lv_obj_set_pos(ui_ManualModeButton, 250, 174);
