@@ -95,7 +95,7 @@ void ui_Screen1_screen_init(void)
     lv_obj_set_style_arc_width(ui_CurrentArc, 14, LV_PART_INDICATOR);
     lv_obj_set_style_bg_opa(ui_CurrentArc, LV_OPA_TRANSP, LV_PART_KNOB);
 
-    ui_ChargePhaseLabel = make_label(main_panel, "off", 20, 51,
+    ui_ChargePhaseLabel = make_label(main_panel, "off", 20, 68,
                                      &lv_font_montserrat_18, COLOR_GREEN);
     lv_obj_set_width(ui_ChargePhaseLabel, 185);
     lv_obj_set_style_text_align(ui_ChargePhaseLabel, LV_TEXT_ALIGN_CENTER, 0);
