@@ -7,6 +7,7 @@
 
 // Shares the requested output state with the main PlatformIO loop.
 extern int led;
+extern int charge_mode_request;
 
 /*---------------------------------------------------------------
  * Handle dashboard commands
@@ -35,4 +36,26 @@ void TurnOff(lv_event_t * e)
 {
     (void)e;
     led = 0;
+}
+
+/**
+ * Request a Wallbox operating mode.
+ * The highlighted button changes only after MQTT state feedback.
+ */
+void SelectManualMode(lv_event_t * e)
+{
+    (void)e;
+    charge_mode_request = 0;
+}
+
+void SelectAutoMode(lv_event_t * e)
+{
+    (void)e;
+    charge_mode_request = 1;
+}
+
+void SelectScheduledMode(lv_event_t * e)
+{
+    (void)e;
+    charge_mode_request = 2;
 }
