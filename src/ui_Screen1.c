@@ -168,13 +168,13 @@ void ui_Screen1_screen_init(void)
     ui_SessionEndLabel = make_label(main_panel, "---", 570, 188,
                                     &lv_font_montserrat_14, COLOR_TEXT);
 
-    ui_SetCurrentLabel = make_label(main_panel, "Soll: -- A", 20, 204,
+    ui_SetCurrentLabel = make_label(main_panel, "Soll: -- A", 20, 186,
                                     &lv_font_montserrat_14, COLOR_MUTED);
     lv_obj_set_width(ui_SetCurrentLabel, 75);
     lv_obj_set_style_text_align(ui_SetCurrentLabel, LV_TEXT_ALIGN_LEFT, 0);
 
     ui_SetCurrentSlider = lv_slider_create(main_panel);
-    lv_obj_set_pos(ui_SetCurrentSlider, 110, 207);
+    lv_obj_set_pos(ui_SetCurrentSlider, 110, 189);
     lv_obj_set_size(ui_SetCurrentSlider, 95, 10);
     lv_slider_set_range(ui_SetCurrentSlider, 6, 16);
     lv_slider_set_value(ui_SetCurrentSlider, 6, LV_ANIM_OFF);
