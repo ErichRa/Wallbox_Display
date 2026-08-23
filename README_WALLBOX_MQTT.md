@@ -1,6 +1,6 @@
 # Wallbox Display – Victron / MQTT / CrowPanel
 
-Stand: 21.08.2026
+Stand: 23.08.2026
 
 Dieses Projekt zeigt und steuert eine Victron EV Charging Station auf einem Elecrow CrowPanel DIS08070H V3.0 mit ESP32-S3, LVGL und MQTT.
 
@@ -52,6 +52,7 @@ Das Display zeigt aktuell:
 - Ladestrom in A
 - Ladephase 1-ph / 3-ph
 - Ladeenergie der aktuellen Session
+- kumulierte Gesamtenergie der Wallbox
 - Ladezeit
 - WLAN-RSSI
 - MQTT-Verbindungsstatus
@@ -81,6 +82,7 @@ Das Display abonniert folgende Topics:
 | `wallbox/data/charging_current_a` | Ladestrom in Ampere | `16` |
 | `wallbox/data/charge_phase` | Ladephase | `1-ph` |
 | `wallbox/data/session_energy_kwh` | Energie der aktuellen Ladesession in kWh | `8.42` |
+| `wallbox/data/total_energy_kwh` | Kumulierte Gesamtenergie der Wallbox in kWh | `482.63` |
 | `wallbox/data/session_duration_s` | Ladedauer in Sekunden | `5820` |
 
 ## 4. MQTT – CrowPanel → Node-RED
@@ -276,6 +278,8 @@ Der aktuelle Funktionsumfang umfasst:
 - Ladestromanzeige ohne Nachkommastellen
 - Ladephasenerkennung 1-ph / 3-ph
 - Anzeige der Session-Energie
+- Anzeige der kumulierten Gesamtenergie aus Victron `/Ac/Energy/Forward`
+- Footer ohne SOC- und Temperatur-Platzhalter
 - Anzeige der Ladezeit im Format `hh:mm h`
 - HTTP-Webserver
 - Screenshot des kompletten Displays über `/screenshot.bmp`
