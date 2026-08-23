@@ -174,8 +174,8 @@ void ui_Screen1_screen_init(void)
     lv_obj_set_style_text_align(ui_SetCurrentLabel, LV_TEXT_ALIGN_RIGHT, 0);
 
     ui_SetCurrentSlider = lv_slider_create(main_panel);
-    lv_obj_set_pos(ui_SetCurrentSlider, 120, 207);
-    lv_obj_set_size(ui_SetCurrentSlider, 82, 10);
+    lv_obj_set_pos(ui_SetCurrentSlider, 132, 207);
+    lv_obj_set_size(ui_SetCurrentSlider, 70, 10);
     lv_slider_set_range(ui_SetCurrentSlider, 6, 16);
     lv_slider_set_value(ui_SetCurrentSlider, 6, LV_ANIM_OFF);
     lv_obj_set_style_bg_color(ui_SetCurrentSlider, lv_color_hex(0x334155), LV_PART_MAIN);
