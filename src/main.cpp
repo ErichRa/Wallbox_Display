@@ -84,6 +84,7 @@ namespace
 constexpr uint8_t BACKLIGHT_PIN = 2;
 constexpr uint32_t SCREEN_WIDTH = 800;
 constexpr uint32_t SCREEN_HEIGHT = 480;
+constexpr uint32_t CHARGE_MODE_CONFIRM_TIMEOUT_MS = 10000;
 
 WiFiClient wifi_client;
 PubSubClient mqtt(wifi_client);
@@ -101,6 +102,8 @@ int pending_wallbox_status = -1;
 int displayed_wallbox_status = -2;
 int pending_charge_mode = -1;
 int displayed_charge_mode = -2;
+int requested_charge_mode = -1;
+uint32_t charge_mode_request_started_ms = 0;
 int pending_set_current_a = -1;
 int displayed_set_current_a = -2;
 float pending_power_watts = 0.0f;
@@ -482,6 +485,26 @@ void update_mode_controls()
                                 LV_PART_MAIN);
 }
 
+void render_charge_mode_buttons()
+{
+    const lv_color_t inactive = lv_color_hex(0x1E3A5F);
+    const lv_color_t active = lv_color_hex(0x238EC4);
+    const lv_color_t requested = lv_color_hex(0xD99A00);
+
+    lv_obj_set_style_bg_color(ui_ManualModeButton,
+                              requested_charge_mode == 0 ? requested :
+                              displayed_charge_mode == 0 ? active : inactive,
+                              LV_PART_MAIN);
+    lv_obj_set_style_bg_color(ui_AutoModeButton,
+                              requested_charge_mode == 1 ? requested :
+                              displayed_charge_mode == 1 ? active : inactive,
+                              LV_PART_MAIN);
+    lv_obj_set_style_bg_color(ui_ScheduledModeButton,
+                              requested_charge_mode == 2 ? requested :
+                              displayed_charge_mode == 2 ? active : inactive,
+                              LV_PART_MAIN);
+}
+
 void update_start_stop_controls()
 {
     bool start_enabled = false;
@@ -535,15 +558,26 @@ void set_wallbox_online_label(int online)
 
 void set_charge_mode_buttons(int mode)
 {
-    const lv_color_t inactive = lv_color_hex(0x1E3A5F);
-    const lv_color_t active = lv_color_hex(0x238EC4);
+    if(requested_charge_mode == mode) {
+        Serial.printf("Lademodus bestaetigt: %d\n", mode);
+        requested_charge_mode = -1;
+        charge_mode_request_started_ms = 0;
+    }
 
-    lv_obj_set_style_bg_color(ui_ManualModeButton, mode == 0 ? active : inactive, LV_PART_MAIN);
-    lv_obj_set_style_bg_color(ui_AutoModeButton, mode == 1 ? active : inactive, LV_PART_MAIN);
-    lv_obj_set_style_bg_color(ui_ScheduledModeButton, mode == 2 ? active : inactive, LV_PART_MAIN);
-
+    render_charge_mode_buttons();
     update_mode_controls();
     update_start_stop_controls();
+}
+
+void update_charge_mode_confirmation_timeout()
+{
+    if(requested_charge_mode < 0) return;
+    if(millis() - charge_mode_request_started_ms < CHARGE_MODE_CONFIRM_TIMEOUT_MS) return;
+
+    Serial.printf("Lademodus-Bestaetigung Timeout: %d\n", requested_charge_mode);
+    requested_charge_mode = -1;
+    charge_mode_request_started_ms = 0;
+    render_charge_mode_buttons();
 }
 
 void set_current_slider(int amps)
@@ -956,6 +990,11 @@ void publish_charge_mode_command()
                        charge_mode_request == 1 ? "auto" : "scheduled";
 
     if(mqtt.publish(TOPIC_CMD_CHARGE_MODE, mode)) {
+        if(charge_mode_request != displayed_charge_mode) {
+            requested_charge_mode = charge_mode_request;
+            charge_mode_request_started_ms = millis();
+            render_charge_mode_buttons();
+        }
         charge_mode_request = -1;
         Serial.printf("MQTT -> Lademodus %s\n", mode);
     }
@@ -1068,6 +1107,7 @@ void loop()
     publish_charge_mode_command();
     publish_set_current_command();
     update_display_from_pending_data();
+    update_charge_mode_confirmation_timeout();
 
     lv_timer_handler();
     delay(10);

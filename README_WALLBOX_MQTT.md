@@ -66,6 +66,8 @@ Das Display zeigt aktuell:
 Die Bedienfreigabe folgt dem bestätigten Modus und Wallbox-Status:
 
 - der bestätigte Lademodus wird blau dargestellt
+- ein angeforderter, noch nicht bestätigter Lademodus wird bis zu zehn
+  Sekunden gelb dargestellt
 - die beiden anderen verfügbaren Lademodi bleiben dunkel, vollständig sichtbar
   und auswählbar
 - nur bei fehlender Wallbox- oder Modusrückmeldung werden alle drei
