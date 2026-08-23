@@ -41,7 +41,7 @@ void TurnOff(lv_event_t * e)
 
 /**
  * Request a Wallbox operating mode.
- * The highlighted button changes only after MQTT state feedback.
+ * The request is shown as pending until MQTT state feedback confirms it.
  */
 void SelectManualMode(lv_event_t * e)
 {
