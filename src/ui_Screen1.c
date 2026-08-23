@@ -74,23 +74,28 @@ void ui_Screen1_screen_init(void)
     /* Main card */
     lv_obj_t *main_panel = make_panel(ui_Screen1, 24, 90, 752, 230);
 
-    ui_SocArc = lv_arc_create(main_panel);
-    lv_obj_set_pos(ui_SocArc, 20, 23);
-    lv_obj_set_size(ui_SocArc, 185, 185);
-    lv_arc_set_range(ui_SocArc, 0, 100);
-    lv_arc_set_value(ui_SocArc, 0);
-    lv_arc_set_bg_angles(ui_SocArc, 135, 45);
-    lv_obj_remove_flag(ui_SocArc, LV_OBJ_FLAG_CLICKABLE);
-    lv_obj_set_style_arc_color(ui_SocArc, lv_color_hex(0x294034), LV_PART_MAIN);
-    lv_obj_set_style_arc_width(ui_SocArc, 14, LV_PART_MAIN);
-    lv_obj_set_style_arc_color(ui_SocArc, COLOR_GREEN, LV_PART_INDICATOR);
-    lv_obj_set_style_arc_width(ui_SocArc, 14, LV_PART_INDICATOR);
-    lv_obj_set_style_bg_opa(ui_SocArc, LV_OPA_TRANSP, LV_PART_KNOB);
+    ui_CurrentArc = lv_arc_create(main_panel);
+    lv_obj_set_pos(ui_CurrentArc, 20, 23);
+    lv_obj_set_size(ui_CurrentArc, 185, 185);
+    lv_arc_set_range(ui_CurrentArc, 0, 160);
+    lv_arc_set_value(ui_CurrentArc, 0);
+    lv_arc_set_bg_angles(ui_CurrentArc, 135, 45);
+    lv_obj_remove_flag(ui_CurrentArc, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_set_style_arc_color(ui_CurrentArc, lv_color_hex(0x294034), LV_PART_MAIN);
+    lv_obj_set_style_arc_width(ui_CurrentArc, 14, LV_PART_MAIN);
+    lv_obj_set_style_arc_color(ui_CurrentArc, COLOR_GREEN, LV_PART_INDICATOR);
+    lv_obj_set_style_arc_width(ui_CurrentArc, 14, LV_PART_INDICATOR);
+    lv_obj_set_style_bg_opa(ui_CurrentArc, LV_OPA_TRANSP, LV_PART_KNOB);
 
     make_label(main_panel, "EV", 92, 66, &lv_font_montserrat_24, COLOR_GREEN);
-    ui_SocLabel = make_label(main_panel, "-- %", 76, 105,
-                             &lv_font_montserrat_28, COLOR_TEXT);
-    make_label(main_panel, "SOC", 94, 142, &lv_font_montserrat_14, COLOR_MUTED);
+    ui_CurrentLabel = make_label(main_panel, "--.- A", 20, 105,
+                                 &lv_font_montserrat_28, COLOR_TEXT);
+    lv_obj_set_width(ui_CurrentLabel, 185);
+    lv_obj_set_style_text_align(ui_CurrentLabel, LV_TEXT_ALIGN_CENTER, 0);
+    lv_obj_t *current_caption = make_label(main_panel, "LADESTROM", 20, 142,
+                                           &lv_font_montserrat_14, COLOR_MUTED);
+    lv_obj_set_width(current_caption, 185);
+    lv_obj_set_style_text_align(current_caption, LV_TEXT_ALIGN_CENTER, 0);
 
     ui_TempLabel = make_label(main_panel, "--.-- kW", 250, 27,
                               &lv_font_montserrat_40, COLOR_TEXT);

@@ -363,6 +363,14 @@ void set_current_phase_label(float amps, const char *phase)
 {
     if(amps < 0.0f) amps = 0.0f;
 
+    int deci_amps = static_cast<int>(amps * 10.0f + 0.5f);
+    if(deci_amps > 160) deci_amps = 160;
+    lv_arc_set_value(ui_CurrentArc, deci_amps);
+
+    char current_text[16];
+    snprintf(current_text, sizeof(current_text), "%.1f A", amps);
+    lv_label_set_text(ui_CurrentLabel, current_text);
+
     const char *phase_text = phase;
     if(strcmp(phase, "off") == 0) phase_text = "--";
 

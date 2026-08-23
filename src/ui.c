@@ -3,8 +3,8 @@
 lv_obj_t *ui_Screen1;
 lv_obj_t *ui_TempLabel;
 lv_obj_t *ui_HumiLabel;
-lv_obj_t *ui_SocArc;
-lv_obj_t *ui_SocLabel;
+lv_obj_t *ui_CurrentArc;
+lv_obj_t *ui_CurrentLabel;
 lv_obj_t *ui_VoltageLabel;
 lv_obj_t *ui_EnergyTodayLabel;
 lv_obj_t *ui_ChargeTimeLabel;
