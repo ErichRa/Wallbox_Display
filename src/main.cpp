@@ -320,22 +320,25 @@ void setup_power_display()
     constexpr lv_coord_t unit_gap = 6;
     constexpr lv_coord_t unit_width = 62;
 
-    const lv_coord_t comma_x = x + integer_width;
-
-    lv_obj_set_pos(ui_TempLabel, x, y);
-    lv_obj_set_width(ui_TempLabel, integer_width);
-    lv_label_set_long_mode(ui_TempLabel, LV_LABEL_LONG_CLIP);
-    lv_obj_set_style_text_align(ui_TempLabel, LV_TEXT_ALIGN_RIGHT, LV_PART_MAIN);
-
     power_decimal_label = lv_label_create(parent);
     lv_label_set_text(power_decimal_label, ",");
     lv_obj_set_style_text_font(power_decimal_label, font, LV_PART_MAIN);
     lv_obj_set_style_text_color(power_decimal_label, color, LV_PART_MAIN);
-    lv_obj_set_pos(power_decimal_label, comma_x, y);
     lv_obj_update_layout(power_decimal_label);
 
     const lv_coord_t comma_width = lv_obj_get_width(power_decimal_label);
+    const lv_coord_t right_edge = x + lv_obj_get_width(ui_TempLabel);
+    const lv_coord_t total_width = integer_width + comma_width +
+                                   fraction_width + unit_gap + unit_width;
+    const lv_coord_t group_x = right_edge - total_width;
+    const lv_coord_t comma_x = group_x + integer_width;
     const lv_coord_t fraction_x = comma_x + comma_width;
+
+    lv_obj_set_pos(ui_TempLabel, group_x, y);
+    lv_obj_set_width(ui_TempLabel, integer_width);
+    lv_label_set_long_mode(ui_TempLabel, LV_LABEL_LONG_CLIP);
+    lv_obj_set_style_text_align(ui_TempLabel, LV_TEXT_ALIGN_RIGHT, LV_PART_MAIN);
+    lv_obj_set_pos(power_decimal_label, comma_x, y);
 
     power_fraction_label = create_power_part(parent, "00",
                                               fraction_x, y,
@@ -547,7 +550,7 @@ void set_current_slider(int amps)
 
 void set_wallbox_status(int status)
 {
-    const char *main_text = "STATUS UNBEKANNT";
+    const char *main_text = "UNBEKANNT";
     const char *vehicle_text = "Fahrzeugstatus unbekannt";
 
     switch(status) {
