@@ -79,8 +79,8 @@ Die Bedienfreigabe folgt dem bestätigten Modus und Wallbox-Status:
 ### Hintergrundbeleuchtung
 
 Nach zwei Minuten ohne Berührung wird die Hintergrundbeleuchtung automatisch
-auf 10 Prozent reduziert. Für den Funktionstest wird sie nach insgesamt drei
-Minuten vollständig ausgeschaltet.
+auf 10 Prozent reduziert. Nach insgesamt zehn Minuten wird sie vollständig
+ausgeschaltet.
 ESP32, WLAN, MQTT und die Displaydarstellung bleiben dabei aktiv.
 
 Eine Berührung des gedimmten Displays stellt sofort die volle Helligkeit wieder
