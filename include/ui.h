@@ -16,9 +16,11 @@ extern lv_obj_t *ui_TempLabel;          // Ladeleistung, z. B. 1.63 kW
 extern lv_obj_t *ui_HumiLabel;          // Ladezustand, z. B. LÄDT · 7.1 A
 extern lv_obj_t *ui_CurrentArc;
 extern lv_obj_t *ui_CurrentLabel;
-extern lv_obj_t *ui_VoltageLabel;
+extern lv_obj_t *ui_ChargePhaseLabel;
 extern lv_obj_t *ui_EnergyTodayLabel;
 extern lv_obj_t *ui_ChargeTimeLabel;
+extern lv_obj_t *ui_SessionStartLabel;
+extern lv_obj_t *ui_SessionEndLabel;
 extern lv_obj_t *ui_TotalEnergyLabel;
 extern lv_obj_t *ui_WallboxOnlineLabel;
 extern lv_obj_t *ui_VehicleLabel;

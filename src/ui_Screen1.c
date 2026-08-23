@@ -87,15 +87,18 @@ void ui_Screen1_screen_init(void)
     lv_obj_set_style_arc_width(ui_CurrentArc, 14, LV_PART_INDICATOR);
     lv_obj_set_style_bg_opa(ui_CurrentArc, LV_OPA_TRANSP, LV_PART_KNOB);
 
-    make_label(main_panel, "EV", 92, 66, &lv_font_montserrat_24, COLOR_GREEN);
+    lv_obj_t *current_title = make_label(main_panel, "LADESTROM", 20, 66,
+                                         &lv_font_montserrat_18, COLOR_GREEN);
+    lv_obj_set_width(current_title, 185);
+    lv_obj_set_style_text_align(current_title, LV_TEXT_ALIGN_CENTER, 0);
     ui_CurrentLabel = make_label(main_panel, "--.- A", 20, 105,
                                  &lv_font_montserrat_28, COLOR_TEXT);
     lv_obj_set_width(ui_CurrentLabel, 185);
     lv_obj_set_style_text_align(ui_CurrentLabel, LV_TEXT_ALIGN_CENTER, 0);
-    lv_obj_t *current_caption = make_label(main_panel, "LADESTROM", 20, 142,
-                                           &lv_font_montserrat_14, COLOR_MUTED);
-    lv_obj_set_width(current_caption, 185);
-    lv_obj_set_style_text_align(current_caption, LV_TEXT_ALIGN_CENTER, 0);
+    ui_ChargePhaseLabel = make_label(main_panel, "off", 20, 142,
+                                     &lv_font_montserrat_16, COLOR_MUTED);
+    lv_obj_set_width(ui_ChargePhaseLabel, 185);
+    lv_obj_set_style_text_align(ui_ChargePhaseLabel, LV_TEXT_ALIGN_CENTER, 0);
 
     ui_TempLabel = make_label(main_panel, "--.-- kW", 250, 27,
                               &lv_font_montserrat_40, COLOR_TEXT);
@@ -141,17 +144,21 @@ void ui_Screen1_screen_init(void)
     lv_obj_set_style_bg_opa(divider, LV_OPA_COVER, 0);
     lv_obj_set_style_border_width(divider, 0, 0);
 
-    make_label(main_panel, "Ladestrom / Phase", 570, 24, &lv_font_montserrat_14, COLOR_BLUE);
-    ui_VoltageLabel = make_label(main_panel, "0 A  --", 570, 45,
-                                  &lv_font_montserrat_24, COLOR_TEXT);
-
-    make_label(main_panel, "Ladeenergie", 570, 88, &lv_font_montserrat_14, COLOR_YELLOW);
-    ui_EnergyTodayLabel = make_label(main_panel, "--.-- kWh", 570, 109,
+    make_label(main_panel, "Ladeenergie", 570, 12, &lv_font_montserrat_14, COLOR_YELLOW);
+    ui_EnergyTodayLabel = make_label(main_panel, "--.-- kWh", 570, 31,
                                      &lv_font_montserrat_20, COLOR_TEXT);
 
-    make_label(main_panel, "Ladezeit", 570, 151, &lv_font_montserrat_14, COLOR_MUTED);
-    ui_ChargeTimeLabel = make_label(main_panel, "--.-- h", 570, 172,
+    make_label(main_panel, "Ladezeit", 570, 59, &lv_font_montserrat_14, COLOR_MUTED);
+    ui_ChargeTimeLabel = make_label(main_panel, "--.-- h", 570, 78,
                                     &lv_font_montserrat_20, COLOR_TEXT);
+
+    make_label(main_panel, "Ladebeginn", 570, 108, &lv_font_montserrat_14, COLOR_MUTED);
+    ui_SessionStartLabel = make_label(main_panel, "---", 570, 124,
+                                      &lv_font_montserrat_14, COLOR_TEXT);
+
+    make_label(main_panel, "Ladeende", 570, 146, &lv_font_montserrat_14, COLOR_MUTED);
+    ui_SessionEndLabel = make_label(main_panel, "---", 570, 162,
+                                    &lv_font_montserrat_14, COLOR_TEXT);
 
     ui_SetCurrentLabel = make_label(main_panel, "Soll: -- A", 570, 201,
                                     &lv_font_montserrat_14, COLOR_MUTED);

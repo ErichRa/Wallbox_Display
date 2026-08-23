@@ -15,6 +15,8 @@
 #define TOPIC_SESSION_ENERGY   "wallbox/data/session_energy_kwh"
 #define TOPIC_TOTAL_ENERGY     "wallbox/data/total_energy_kwh"
 #define TOPIC_SESSION_DURATION "wallbox/data/session_duration_s"
+#define TOPIC_SESSION_START    "wallbox/session/start"
+#define TOPIC_SESSION_END      "wallbox/session/end"
 
 // CrowPanel -> Node-RED / MQTT Explorer
 #define TOPIC_ONLINE         "wallbox/display/online"
