@@ -224,6 +224,10 @@ void ui_Screen1_screen_init(void)
 
     ui_TotalEnergyLabel = make_label(footer, "Energie gesamt: --.-- kWh", 14, 8,
                                      &lv_font_montserrat_14, COLOR_TEXT);
+    ui_ClockLabel = make_label(footer, "--:--", 276, 7,
+                               &lv_font_montserrat_16, COLOR_TEXT);
+    lv_obj_set_width(ui_ClockLabel, 200);
+    lv_obj_set_style_text_align(ui_ClockLabel, LV_TEXT_ALIGN_CENTER, 0);
     ui_WallboxOnlineLabel = make_label(footer, "Wallbox --", 610, 8,
                                        &lv_font_montserrat_14, COLOR_MUTED);
 }

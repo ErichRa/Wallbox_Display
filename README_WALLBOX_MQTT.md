@@ -61,6 +61,7 @@ Das Display zeigt aktuell:
 - WLAN-RSSI
 - MQTT-Verbindungsstatus
 - IP-Adresse
+- aktuelle Uhrzeit in der unteren Statuszeile
 - START- und STOP-Schaltfläche
 
 Die Bedienfreigabe folgt dem bestätigten Modus und Wallbox-Status:
@@ -87,6 +88,11 @@ Eine Berührung des gedimmten Displays stellt sofort die volle Helligkeit wieder
 her und wird normal verarbeitet. Bei ausgeschalteter Beleuchtung dient die erste
 Berührung ausschließlich zum Aufwecken; erst die folgende Berührung bedient ein
 Element.
+
+Die mittig angeordnete Uhrzeit wird per NTP synchronisiert und im Format
+`HH:MM` angezeigt. Die konfigurierte Zeitzone berücksichtigt die deutsche
+Sommer- und Winterzeit automatisch. Bis zur ersten Synchronisation erscheint
+`--:--`.
 
 Geplante Ablage des aktuellen Screenshots im Repository:
 

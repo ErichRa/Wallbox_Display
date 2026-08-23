@@ -5,6 +5,7 @@
 
 #include <WiFi.h>
 #include <WebServer.h>
+#include <time.h>
 #include <PubSubClient.h>
 #include <LovyanGFX.hpp>
 #include <lgfx/v1/platforms/esp32s3/Bus_RGB.hpp>
@@ -91,6 +92,7 @@ constexpr uint32_t BACKLIGHT_OFF_DELAY_MS = 10UL * 60UL * 1000UL;
 constexpr uint32_t SCREEN_WIDTH = 800;
 constexpr uint32_t SCREEN_HEIGHT = 480;
 constexpr uint32_t CHARGE_MODE_CONFIRM_TIMEOUT_MS = 10000;
+constexpr char TIMEZONE_EUROPE_BERLIN[] = "CET-1CEST,M3.5.0/2,M10.5.0/3";
 
 enum class BacklightState : uint8_t
 {
@@ -106,7 +108,9 @@ WebServer web_server(80);
 bool web_server_started = false;
 uint32_t last_wifi_try = 0;
 uint32_t last_mqtt_try = 0;
+uint32_t last_clock_check_ms = 0;
 int last_led_sent = -1;
+bool time_sync_started = false;
 bool backlight_pwm_ready = false;
 bool suppress_touch_until_release = false;
 uint32_t last_user_activity_ms = 0;
@@ -986,6 +990,30 @@ void wifi_service()
     WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
 }
 
+void clock_service()
+{
+    if(WiFi.status() != WL_CONNECTED) return;
+
+    if(!time_sync_started) {
+        configTzTime(TIMEZONE_EUROPE_BERLIN, "pool.ntp.org", "time.nist.gov");
+        time_sync_started = true;
+        Serial.println("NTP-Zeitsynchronisation gestartet");
+    }
+
+    const uint32_t now = millis();
+    if(now - last_clock_check_ms < 1000) return;
+    last_clock_check_ms = now;
+
+    struct tm local_time;
+    if(!getLocalTime(&local_time, 0)) return;
+
+    char clock_text[6];
+    strftime(clock_text, sizeof(clock_text), "%H:%M", &local_time);
+    if(strcmp(lv_label_get_text(ui_ClockLabel), clock_text) != 0) {
+        lv_label_set_text(ui_ClockLabel, clock_text);
+    }
+}
+
 void publish_presence()
 {
     const String ip = WiFi.localIP().toString();
@@ -1193,6 +1221,7 @@ void setup()
 void loop()
 {
     wifi_service();
+    clock_service();
     mqtt_service();
     web_service();
     publish_button_command();
