@@ -5,6 +5,13 @@
 #include "secrets.h"
 
 #define WALLBOX_DISPLAY_VERSION "2.1.0"
+#define OTA_HOSTNAME "wallbox-display"
+
+// Bestehende lokale secrets.h-Dateien bleiben kompatibel. OTA wird erst aktiv,
+// wenn dort OTA_PASSWORD mit einem nicht leeren Wert definiert wurde.
+#ifndef OTA_PASSWORD
+#define OTA_PASSWORD ""
+#endif
 
 // Node-RED -> CrowPanel
 #define TOPIC_STATUS           "wallbox/data/status"
