@@ -364,3 +364,52 @@ Damit ist das Projekt in einem sehr guten, praktisch einsetzbaren Zustand.
 WLAN- und MQTT-Zugangsdaten werden nicht im öffentlichen GitHub-Repository gespeichert.
 
 Die lokale Konfiguration erfolgt über eine nicht versionierte Datei `include/secrets.h`, die von `config.h` eingebunden wird.
+
+
+## 13. OTA-Firmwareupdates
+
+Das Projekt verwendet auf dem 4-MB-Flash zwei OTA-App-Slots mit jeweils
+1.966.080 Bytes. PlatformIO bricht den Build ab, falls die Firmware diese
+Grenze überschreitet.
+
+In `include/secrets.h` muss zusätzlich ein eigenes OTA-Passwort stehen:
+
+```cpp
+#define OTA_PASSWORD "EIN_LANGES_EIGENES_PASSWORT"
+```
+
+Ohne ein nicht leeres Passwort bleibt der OTA-Dienst deaktiviert. Das Passwort
+wird nicht im Repository gespeichert.
+
+### Einmalige Erstinstallation per USB
+
+Der Wechsel von der bisherigen Ein-Slot- auf die Zwei-Slot-Partitionstabelle
+muss einmalig per USB geflasht werden:
+
+```bash
+pio run -e esp32-s3-devkitc-1-myboard -t upload
+```
+
+### Weitere Updates über WLAN
+
+Mac/Linux fragt das Passwort verdeckt ab und übergibt es nur für diesen Upload:
+
+```bash
+read -s OTA_UPLOAD_PASSWORD
+PLATFORMIO_UPLOAD_FLAGS="--auth=${OTA_UPLOAD_PASSWORD}" \
+  pio run -e wallbox-display-ota -t upload
+unset OTA_UPLOAD_PASSWORD
+```
+
+Das Display muss im selben Netzwerk unter `wallbox-display.local` erreichbar
+sein. Falls mDNS nicht aufgelöst wird, kann die aktuelle IP-Adresse verwendet
+werden:
+
+```bash
+PLATFORMIO_UPLOAD_FLAGS="--auth=${OTA_UPLOAD_PASSWORD}" \
+  pio run -e wallbox-display-ota -t upload --upload-port 192.168.1.50
+```
+
+Bei einem fehlgeschlagenen OTA-Update bleibt der zuletzt funktionierende
+Firmware-Slot startfähig. Eine Wiederherstellung per USB bleibt weiterhin
+möglich.
