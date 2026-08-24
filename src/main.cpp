@@ -118,8 +118,6 @@ BacklightState backlight_state = BacklightState::Unknown;
 
 lv_color_t *screen_frame_buffer = nullptr;
 
-int pending_wallbox_online = -1;
-int displayed_wallbox_online = -2;
 int pending_wallbox_status = -1;
 int displayed_wallbox_status = -2;
 int pending_charge_mode = -1;
@@ -557,8 +555,7 @@ void set_control_enabled(lv_obj_t *control, bool enabled)
 
 void update_mode_controls()
 {
-    const bool mode_feedback_valid = displayed_wallbox_online == 1 &&
-                                     displayed_charge_mode >= 0 &&
+    const bool mode_feedback_valid = displayed_charge_mode >= 0 &&
                                      displayed_charge_mode <= 2;
 
     set_control_enabled(ui_ManualModeButton, mode_feedback_valid);
@@ -599,8 +596,7 @@ void update_start_stop_controls()
     bool start_enabled = false;
     bool stop_enabled = false;
 
-    const bool feedback_valid = displayed_wallbox_online == 1 &&
-                                displayed_charge_mode >= 0 &&
+    const bool feedback_valid = displayed_charge_mode >= 0 &&
                                 displayed_charge_mode <= 2 &&
                                 displayed_wallbox_status >= 0;
 
@@ -624,25 +620,6 @@ void update_start_stop_controls()
 
     set_control_enabled(ui_OnButton, start_enabled);
     set_control_enabled(ui_OffButton, stop_enabled);
-}
-
-void set_wallbox_online_label(int online)
-{
-    if(online == 1) {
-        lv_label_set_text(ui_WallboxOnlineLabel, "Wallbox online");
-        lv_obj_set_style_text_color(ui_WallboxOnlineLabel, lv_color_hex(0x79D856), LV_PART_MAIN);
-    }
-    else if(online == 0) {
-        lv_label_set_text(ui_WallboxOnlineLabel, "Wallbox offline");
-        lv_obj_set_style_text_color(ui_WallboxOnlineLabel, lv_color_hex(0xE05252), LV_PART_MAIN);
-    }
-    else {
-        lv_label_set_text(ui_WallboxOnlineLabel, "Wallbox --");
-        lv_obj_set_style_text_color(ui_WallboxOnlineLabel, lv_color_hex(0xA2A6AA), LV_PART_MAIN);
-    }
-
-    update_mode_controls();
-    update_start_stop_controls();
 }
 
 void set_charge_mode_buttons(int mode)
@@ -735,16 +712,6 @@ void mqtt_callback(char *topic, byte *payload, unsigned int length)
     char buffer[40];
     if(!payload_to_buffer(payload, length, buffer, sizeof(buffer))) {
         Serial.printf("MQTT Payload zu lang [%s]\n", topic);
-        return;
-    }
-
-    if(strcmp(topic, TOPIC_WALLBOX_ONLINE) == 0) {
-        if(strcmp(buffer, "0") != 0 && strcmp(buffer, "1") != 0) {
-            Serial.printf("MQTT Wallbox-Online-Status ungueltig: %s\n", buffer);
-            return;
-        }
-        pending_wallbox_online = (buffer[0] == '1') ? 1 : 0;
-        Serial.printf("MQTT RX [%s] = %d\n", topic, pending_wallbox_online);
         return;
     }
 
@@ -886,12 +853,6 @@ void mqtt_callback(char *topic, byte *payload, unsigned int length)
 
 void update_display_from_pending_data()
 {
-    if(pending_wallbox_online != displayed_wallbox_online) {
-        displayed_wallbox_online = pending_wallbox_online;
-        set_wallbox_online_label(displayed_wallbox_online);
-        Serial.printf("Display Wallbox-Verbindung aktualisiert: %d\n", displayed_wallbox_online);
-    }
-
     if(pending_wallbox_status != displayed_wallbox_status) {
         displayed_wallbox_status = pending_wallbox_status;
         set_wallbox_status(displayed_wallbox_status);
@@ -1056,7 +1017,6 @@ void mqtt_service()
 
         if(ok) {
             Serial.println("MQTT verbunden");
-            mqtt.subscribe(TOPIC_WALLBOX_ONLINE, 0);
             mqtt.subscribe(TOPIC_STATUS, 0);
             mqtt.subscribe(TOPIC_CHARGE_MODE, 0);
             mqtt.subscribe(TOPIC_SET_CURRENT, 0);
@@ -1068,7 +1028,6 @@ void mqtt_service()
             mqtt.subscribe(TOPIC_SESSION_DURATION, 0);
             mqtt.subscribe(TOPIC_SESSION_START, 0);
             mqtt.subscribe(TOPIC_SESSION_END, 0);
-            Serial.printf("MQTT subscribe: %s\n", TOPIC_WALLBOX_ONLINE);
             Serial.printf("MQTT subscribe: %s\n", TOPIC_STATUS);
             Serial.printf("MQTT subscribe: %s\n", TOPIC_CHARGE_MODE);
             Serial.printf("MQTT subscribe: %s\n", TOPIC_SET_CURRENT);
