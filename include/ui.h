@@ -12,6 +12,7 @@ void ui_Screen1_screen_init(void);
 void ui_init(void);
 
 extern lv_obj_t *ui_Screen1;
+extern lv_obj_t *ui_VersionLabel;
 extern lv_obj_t *ui_TempLabel;          // Ladeleistung, z. B. 1.63 kW
 extern lv_obj_t *ui_HumiLabel;          // Ladezustand, z. B. LÄDT · 7.1 A
 extern lv_obj_t *ui_CurrentArc;
