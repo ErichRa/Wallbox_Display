@@ -1196,6 +1196,18 @@ void setup()
     set_backlight_state(BacklightState::Active);
 
     ui_init();
+
+    char version_text[16];
+    unsigned int version_major = 0;
+    unsigned int version_minor = 0;
+    if(sscanf(WALLBOX_DISPLAY_VERSION, "%u.%u", &version_major, &version_minor) == 2) {
+        snprintf(version_text, sizeof(version_text), "V%u.%u", version_major, version_minor);
+    }
+    else {
+        snprintf(version_text, sizeof(version_text), "V%s", WALLBOX_DISPLAY_VERSION);
+    }
+    lv_label_set_text(ui_VersionLabel, version_text);
+
     lv_label_set_text(ui_HumiLabel, "MQTT WARTET");
     setup_power_display();
     set_power_label(0.0f);
