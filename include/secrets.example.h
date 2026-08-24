@@ -15,3 +15,6 @@
 #define MQTT_PASSWORD   ""
 
 #define MQTT_CLIENT_ID  "crowpanel-wallbox"
+
+// Mindestens ein eigenes, starkes Passwort setzen. Ohne Passwort bleibt OTA deaktiviert.
+#define OTA_PASSWORD    "DEIN_OTA_PASSWORT"
