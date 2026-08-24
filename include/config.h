@@ -7,7 +7,6 @@
 #define WALLBOX_DISPLAY_VERSION "2.1.0"
 
 // Node-RED -> CrowPanel
-#define TOPIC_WALLBOX_ONLINE   "wallbox/data/online"
 #define TOPIC_STATUS           "wallbox/data/status"
 #define TOPIC_CHARGE_MODE      "wallbox/data/charge_mode"
 #define TOPIC_SET_CURRENT      "wallbox/data/set_current_a"
