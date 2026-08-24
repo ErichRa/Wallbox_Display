@@ -4,6 +4,7 @@
  *--------------------------------------------------------------*/
 
 #include <WiFi.h>
+#include <ArduinoOTA.h>
 #include <WebServer.h>
 #include <time.h>
 #include <PubSubClient.h>
@@ -106,6 +107,8 @@ WiFiClient wifi_client;
 PubSubClient mqtt(wifi_client);
 WebServer web_server(80);
 bool web_server_started = false;
+bool ota_started = false;
+bool ota_password_warning_printed = false;
 uint32_t last_wifi_try = 0;
 uint32_t last_mqtt_try = 0;
 uint32_t last_clock_check_ms = 0;
@@ -975,6 +978,38 @@ void clock_service()
     }
 }
 
+void ota_service()
+{
+    if(WiFi.status() != WL_CONNECTED) return;
+
+    if(!ota_started) {
+        if(strlen(OTA_PASSWORD) == 0) {
+            if(!ota_password_warning_printed) {
+                Serial.println("OTA deaktiviert: OTA_PASSWORD fehlt in include/secrets.h");
+                ota_password_warning_printed = true;
+            }
+            return;
+        }
+
+        ArduinoOTA.setHostname(OTA_HOSTNAME);
+        ArduinoOTA.setPassword(OTA_PASSWORD);
+        ArduinoOTA.onStart([]() {
+            Serial.println("OTA-Update gestartet");
+        });
+        ArduinoOTA.onEnd([]() {
+            Serial.println("OTA-Update abgeschlossen, Neustart folgt");
+        });
+        ArduinoOTA.onError([](ota_error_t error) {
+            Serial.printf("OTA-Fehler [%u]\n", static_cast<unsigned int>(error));
+        });
+        ArduinoOTA.begin();
+        ota_started = true;
+        Serial.printf("OTA bereit: %s.local\n", OTA_HOSTNAME);
+    }
+
+    ArduinoOTA.handle();
+}
+
 void publish_presence()
 {
     const String ip = WiFi.localIP().toString();
@@ -1181,6 +1216,7 @@ void loop()
 {
     wifi_service();
     clock_service();
+    ota_service();
     mqtt_service();
     web_service();
     publish_button_command();
