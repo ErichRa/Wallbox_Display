@@ -113,9 +113,9 @@ void ui_Screen1_screen_init(void)
     lv_obj_set_width(ui_TempLabel, 276);
     lv_obj_set_style_text_align(ui_TempLabel, LV_TEXT_ALIGN_RIGHT, 0);
     lv_label_set_long_mode(ui_TempLabel, LV_LABEL_LONG_CLIP);
-    ui_HumiLabel = make_label(main_panel, "BEREIT", 250, 87,
+    ui_HumiLabel = make_label(main_panel, "BEREIT", 210, 87,
                               &lv_font_montserrat_28, COLOR_GREEN);
-    lv_obj_set_width(ui_HumiLabel, 276);
+    lv_obj_set_width(ui_HumiLabel, 316);
     lv_obj_set_style_text_align(ui_HumiLabel, LV_TEXT_ALIGN_RIGHT, 0);
     ui_VehicleLabel = make_label(main_panel, "Fahrzeug nicht verbunden", 250, 136,
                                  &lv_font_montserrat_18, COLOR_MUTED);
