@@ -4,7 +4,7 @@
 // Diese Datei wird NICHT in GitHub gespeichert.
 #include "secrets.h"
 
-#define WALLBOX_DISPLAY_VERSION "2.1.0"
+#define WALLBOX_DISPLAY_VERSION "2.1.1"
 #define OTA_HOSTNAME "wallbox-display"
 
 // Bestehende lokale secrets.h-Dateien bleiben kompatibel. OTA wird erst aktiv,
