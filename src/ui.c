@@ -1,6 +1,7 @@
 #include "ui.h"
 
 lv_obj_t *ui_Screen1;
+lv_obj_t *ui_VersionLabel;
 lv_obj_t *ui_TempLabel;
 lv_obj_t *ui_HumiLabel;
 lv_obj_t *ui_CurrentArc;

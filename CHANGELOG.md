@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.1.3 – 30.08.2026
+
+- Versionsanzeige hinter „Smart Charging“ in den gedrehten Hauptstand übernommen.
+
 ## 2.1.2 – 30.08.2026
 
 - Anzeige für den mechanisch um 180 Grad gedrehten Einbau ausgerichtet.

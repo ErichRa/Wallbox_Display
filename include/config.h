@@ -4,7 +4,7 @@
 // Diese Datei wird NICHT in GitHub gespeichert.
 #include "secrets.h"
 
-#define WALLBOX_DISPLAY_VERSION "2.1.2"
+#define WALLBOX_DISPLAY_VERSION "2.1.3"
 #define OTA_HOSTNAME "wallbox-display"
 
 // Das Display wird mechanisch um 180 Grad gedreht eingebaut, damit der

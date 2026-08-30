@@ -58,6 +58,8 @@ void ui_Screen1_screen_init(void)
     /* Header */
     make_label(ui_Screen1, "WALLBOX", 28, 18, &lv_font_montserrat_32, COLOR_TEXT);
     make_label(ui_Screen1, "Smart Charging", 30, 52, &lv_font_montserrat_16, COLOR_MUTED);
+    ui_VersionLabel = make_label(ui_Screen1, "V--", 166, 52,
+                                 &lv_font_montserrat_16, COLOR_MUTED);
 
     ui_WifiLabel = make_label(ui_Screen1, "WLAN  -- dBm", 400, 18,
                               &lv_font_montserrat_16, COLOR_GREEN);
