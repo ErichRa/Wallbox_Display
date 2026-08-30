@@ -11,6 +11,7 @@
 #include <LovyanGFX.hpp>
 #include <lgfx/v1/platforms/esp32s3/Bus_RGB.hpp>
 #include <lgfx/v1/platforms/esp32s3/Panel_RGB.hpp>
+#include <esp_heap_caps.h>
 #include <lvgl.h>
 #include "ui.h"
 #include "config.h"
@@ -92,6 +93,7 @@ constexpr uint32_t BACKLIGHT_DIM_DELAY_MS = 2UL * 60UL * 1000UL;
 constexpr uint32_t BACKLIGHT_OFF_DELAY_MS = 10UL * 60UL * 1000UL;
 constexpr uint32_t SCREEN_WIDTH = 800;
 constexpr uint32_t SCREEN_HEIGHT = 480;
+constexpr uint32_t LVGL_DRAW_BUFFER_ROWS = 48;
 constexpr uint32_t CHARGE_MODE_CONFIRM_TIMEOUT_MS = 10000;
 constexpr char TIMEZONE_EUROPE_BERLIN[] = "CET-1CEST,M3.5.0/2,M10.5.0/3";
 
@@ -119,7 +121,8 @@ bool suppress_touch_until_release = false;
 uint32_t last_user_activity_ms = 0;
 BacklightState backlight_state = BacklightState::Unknown;
 
-lv_color_t *screen_frame_buffer = nullptr;
+uint16_t *screen_frame_buffer = nullptr;
+uint16_t *lvgl_draw_buffer = nullptr;
 
 int pending_wallbox_status = -1;
 int displayed_wallbox_status = -2;
@@ -219,10 +222,31 @@ void backlight_service()
 
 void display_flush(lv_display_t *display, const lv_area_t *area, uint8_t *pixel_map)
 {
+#if DISPLAY_ROTATION_180
+    const uint16_t *source = reinterpret_cast<const uint16_t *>(pixel_map);
+    const int32_t area_width = lv_area_get_width(area);
+
+    for(int32_t y = area->y1; y <= area->y2; ++y) {
+        const int32_t destination_y = static_cast<int32_t>(SCREEN_HEIGHT) - 1 - y;
+        uint16_t *destination = screen_frame_buffer +
+                                destination_y * SCREEN_WIDTH +
+                                (static_cast<int32_t>(SCREEN_WIDTH) - 1 - area->x1);
+        const uint16_t *source_row = source + (y - area->y1) * area_width;
+
+        for(int32_t x = area->x1; x <= area->x2; ++x) {
+            *destination-- = source_row[x - area->x1];
+        }
+    }
+
+    if(!lcd.bus.presentFrameBuffer(reinterpret_cast<uint8_t *>(screen_frame_buffer))) {
+        Serial.println("LovyanGFX VSYNC frame switch timeout");
+    }
+#else
     (void)area;
     if(!lcd.bus.presentFrameBuffer(pixel_map)) {
         Serial.println("LovyanGFX VSYNC frame switch timeout");
     }
+#endif
     lv_display_flush_ready(display);
 }
 
@@ -243,8 +267,13 @@ void touchpad_read(lv_indev_t *indev, lv_indev_data_t *data)
         if(suppress_touch_until_release) return;
 
         data->state = LV_INDEV_STATE_PRESSED;
+#if DISPLAY_ROTATION_180
+        data->point.x = static_cast<int32_t>(SCREEN_WIDTH) - 1 - touch_last_x;
+        data->point.y = static_cast<int32_t>(SCREEN_HEIGHT) - 1 - touch_last_y;
+#else
         data->point.x = touch_last_x;
         data->point.y = touch_last_y;
+#endif
     }
     else {
         suppress_touch_until_release = false;
@@ -307,11 +336,16 @@ void handle_screenshot()
     // BMP speichert positive Hoehen von unten nach oben. Der LVGL-Framebuffer
     // liegt zeilenweise von oben nach unten, deshalb werden die Zeilen umgekehrt.
     for(int y = static_cast<int>(SCREEN_HEIGHT) - 1; y >= 0; --y) {
-        const uint16_t *source = reinterpret_cast<const uint16_t *>(screen_frame_buffer) +
-                                 static_cast<size_t>(y) * SCREEN_WIDTH;
-
         for(uint32_t x = 0; x < SCREEN_WIDTH; ++x) {
-            const uint16_t rgb565 = source[x];
+#if DISPLAY_ROTATION_180
+            const uint32_t source_x = SCREEN_WIDTH - 1U - x;
+            const uint32_t source_y = SCREEN_HEIGHT - 1U - static_cast<uint32_t>(y);
+#else
+            const uint32_t source_x = x;
+            const uint32_t source_y = static_cast<uint32_t>(y);
+#endif
+            const uint16_t rgb565 =
+                screen_frame_buffer[static_cast<size_t>(source_y) * SCREEN_WIDTH + source_x];
             const uint8_t r5 = static_cast<uint8_t>((rgb565 >> 11) & 0x1FU);
             const uint8_t g6 = static_cast<uint8_t>((rgb565 >> 5) & 0x3FU);
             const uint8_t b5 = static_cast<uint8_t>(rgb565 & 0x1FU);
@@ -1164,7 +1198,7 @@ void setup()
     lv_tick_set_cb(tick_get);
     touch_init();
 
-    screen_frame_buffer = reinterpret_cast<lv_color_t *>(lcd.bus.getFrameBuffer(0));
+    screen_frame_buffer = reinterpret_cast<uint16_t *>(lcd.bus.getFrameBuffer(0));
 
     Serial.printf("RGB single frame buffer: %p\n", screen_frame_buffer);
     if(screen_frame_buffer == nullptr) {
@@ -1175,11 +1209,28 @@ void setup()
     lv_display_t *display = lv_display_create(lcd.width(), lcd.height());
     lv_display_set_color_format(display, LV_COLOR_FORMAT_RGB565);
     lv_display_set_flush_cb(display, display_flush);
+#if DISPLAY_ROTATION_180
+    constexpr size_t draw_buffer_size =
+        SCREEN_WIDTH * LVGL_DRAW_BUFFER_ROWS * sizeof(uint16_t);
+    lvgl_draw_buffer = reinterpret_cast<uint16_t *>(
+        heap_caps_malloc(draw_buffer_size, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT));
+    if(lvgl_draw_buffer == nullptr) {
+        Serial.println("LVGL Teilpuffer fuer 180-Grad-Drehung konnte nicht angelegt werden");
+        return;
+    }
+    lv_display_set_buffers(display,
+                           lvgl_draw_buffer,
+                           nullptr,
+                           draw_buffer_size,
+                           LV_DISPLAY_RENDER_MODE_PARTIAL);
+    Serial.println("Display und Touch: 180 Grad gedreht");
+#else
     lv_display_set_buffers(display,
                            screen_frame_buffer,
                            nullptr,
-                           SCREEN_WIDTH * SCREEN_HEIGHT * sizeof(lv_color_t),
+                           SCREEN_WIDTH * SCREEN_HEIGHT * sizeof(uint16_t),
                            LV_DISPLAY_RENDER_MODE_DIRECT);
+#endif
 
     lv_indev_t *touchpad = lv_indev_create();
     lv_indev_set_type(touchpad, LV_INDEV_TYPE_POINTER);

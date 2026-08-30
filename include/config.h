@@ -4,8 +4,13 @@
 // Diese Datei wird NICHT in GitHub gespeichert.
 #include "secrets.h"
 
-#define WALLBOX_DISPLAY_VERSION "2.1.1"
+#define WALLBOX_DISPLAY_VERSION "2.1.2"
 #define OTA_HOSTNAME "wallbox-display"
+
+// Das Display wird mechanisch um 180 Grad gedreht eingebaut, damit der
+// umgelegte USB-C-Anschluss nach unten zeigt. Bild, Touch und HTTP-Screenshot
+// werden gemeinsam gedreht. Zum Rueckbau lediglich auf 0 setzen.
+#define DISPLAY_ROTATION_180 1
 
 // Bestehende lokale secrets.h-Dateien bleiben kompatibel. OTA wird erst aktiv,
 // wenn dort OTA_PASSWORD mit einem nicht leeren Wert definiert wurde.

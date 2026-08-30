@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.1.2 – 30.08.2026
+
+- Anzeige für den mechanisch um 180 Grad gedrehten Einbau ausgerichtet.
+- Touch-Koordinaten passend zur neuen Einbaulage gedreht.
+- HTTP-Screenshot bleibt in der normalen Leserichtung.
+- Rotation zentral über `DISPLAY_ROTATION_180` ein- und ausschaltbar.
+
 ## 2.1.0 – 23.08.2026
 
 Finalisierter Bedien- und Darstellungsstand des Wallbox-Displays.
