@@ -993,7 +993,7 @@ void clock_service()
     if(WiFi.status() != WL_CONNECTED) return;
 
     if(!time_sync_started) {
-        configTzTime(TIMEZONE_EUROPE_BERLIN, "pool.ntp.org", "time.nist.gov");
+        configTzTime(TIMEZONE_EUROPE_BERLIN, "192.168.1.83", "pool.ntp.org");
         time_sync_started = true;
         Serial.println("NTP-Zeitsynchronisation gestartet");
     }
