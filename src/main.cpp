@@ -47,7 +47,7 @@ public:
         bus_config.pin_vsync = GPIO_NUM_40;
         bus_config.pin_hsync = GPIO_NUM_39;
         bus_config.pin_pclk = GPIO_NUM_0;
-        bus_config.freq_write = 6000000; // Test: RGB-Pixeltakt 6 MHz statt 18 MHz
+        bus_config.freq_write = 18000000;
         bus_config.hsync_polarity = 0;
         bus_config.hsync_front_porch = 40;
         bus_config.hsync_pulse_width = 48;
