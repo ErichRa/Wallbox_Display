@@ -53,7 +53,7 @@ namespace lgfx
     panel_config.data_width = 16;
     panel_config.bits_per_pixel = 16;
     panel_config.num_fbs = 2;
-    panel_config.bounce_buffer_size_px = _cfg.panel->width() * 10;
+    panel_config.bounce_buffer_size_px = _cfg.panel->width() * 20; // Test: 20 RGB-Zeilen
     panel_config.dma_burst_size = 64;
     panel_config.hsync_gpio_num = _cfg.pin_hsync;
     panel_config.vsync_gpio_num = _cfg.pin_vsync;
