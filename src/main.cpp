@@ -111,12 +111,6 @@ WebServer web_server(80);
 bool web_server_started = false;
 bool ota_started = false;
 bool ota_upload_active = false;
-bool ota_screen_initialized = false;
-uint8_t ota_progress_percent = 0;
-uint8_t ota_progress_rendered = 255;
-lv_obj_t *ota_screen = nullptr;
-lv_obj_t *ota_progress_label = nullptr;
-lv_obj_t *ota_progress_bar = nullptr;
 BacklightState backlight_state_before_ota = BacklightState::Unknown;
 bool ota_password_warning_printed = false;
 uint32_t last_wifi_try = 0;
@@ -1020,42 +1014,6 @@ void clock_service()
     }
 }
 
-void ota_display_service()
-{
-    if(!ota_screen_initialized) {
-        ota_screen = lv_obj_create(nullptr);
-        lv_obj_set_style_bg_color(ota_screen, lv_color_hex(0x101923), 0);
-        lv_obj_t *heading = lv_label_create(ota_screen);
-        lv_label_set_text(heading, "Firmware-Update");
-        lv_obj_set_style_text_color(heading, lv_color_white(), 0);
-        lv_obj_align(heading, LV_ALIGN_CENTER, 0, -85);
-        ota_progress_label = lv_label_create(ota_screen);
-        lv_obj_set_style_text_color(ota_progress_label, lv_color_white(), 0);
-        lv_obj_align(ota_progress_label, LV_ALIGN_CENTER, 0, -20);
-        ota_progress_bar = lv_bar_create(ota_screen);
-        lv_obj_set_size(ota_progress_bar, 540, 26);
-        lv_obj_align(ota_progress_bar, LV_ALIGN_CENTER, 0, 45);
-        lv_bar_set_range(ota_progress_bar, 0, 100);
-        lv_obj_t *notice = lv_label_create(ota_screen);
-        lv_label_set_text(notice, "Bitte Stromversorgung nicht unterbrechen");
-        lv_obj_set_style_text_color(notice, lv_color_hex(0xA7B5C6), 0);
-        lv_obj_align(notice, LV_ALIGN_CENTER, 0, 105);
-        lv_screen_load(ota_screen);
-        ota_screen_initialized = true;
-        ota_progress_rendered = 255;
-        set_backlight_state(BacklightState::Active);
-    }
-    const uint8_t percent = ota_progress_percent;
-    if(ota_progress_rendered == 255 || percent / 5 > ota_progress_rendered / 5) {
-        char label[12];
-        snprintf(label, sizeof(label), "%u %%", static_cast<unsigned>(percent));
-        lv_label_set_text(ota_progress_label, label);
-        lv_bar_set_value(ota_progress_bar, percent, LV_ANIM_OFF);
-        ota_progress_rendered = percent;
-        lv_timer_handler();
-    }
-}
-
 void ota_service()
 {
     if(WiFi.status() != WL_CONNECTED) return;
@@ -1072,14 +1030,10 @@ void ota_service()
         ArduinoOTA.setHostname(OTA_HOSTNAME);
         ArduinoOTA.setPassword(OTA_PASSWORD);
         ArduinoOTA.onStart([]() {
-            Serial.println("OTA-Update gestartet: Fortschrittsanzeige");
+            Serial.println("OTA-Update gestartet: Display aus");
             backlight_state_before_ota = backlight_state;
-            ota_progress_percent = 0;
-            ota_screen_initialized = false;
             ota_upload_active = true;
-        });
-        ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
-            if(total > 0) ota_progress_percent = static_cast<uint8_t>((static_cast<uint64_t>(progress) * 100U) / total);
+            set_backlight_state(BacklightState::Off);
         });
         ArduinoOTA.onEnd([]() {
             Serial.println("OTA-Update abgeschlossen, Neustart folgt");
@@ -1087,12 +1041,6 @@ void ota_service()
         ArduinoOTA.onError([](ota_error_t error) {
             Serial.printf("OTA-Fehler [%u]\n", static_cast<unsigned int>(error));
             ota_upload_active = false;
-            if(ota_screen_initialized) {
-                lv_screen_load(ui_Screen1);
-                lv_obj_delete(ota_screen);
-                ota_screen = nullptr;
-                ota_screen_initialized = false;
-            }
             set_backlight_state(backlight_state_before_ota);
         });
         ArduinoOTA.begin();
@@ -1333,9 +1281,8 @@ void loop()
     clock_service();
     ota_service();
     if(ota_upload_active) {
-        ota_display_service();
         delay(10);
-        return;
+        return;  // Keine Display-Aktualisierung waehrend OTA
     }
     mqtt_service();
     web_service();
