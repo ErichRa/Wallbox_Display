@@ -110,6 +110,8 @@ PubSubClient mqtt(wifi_client);
 WebServer web_server(80);
 bool web_server_started = false;
 bool ota_started = false;
+bool ota_upload_active = false;
+BacklightState backlight_state_before_ota = BacklightState::Unknown;
 bool ota_password_warning_printed = false;
 uint32_t last_wifi_try = 0;
 uint32_t last_mqtt_try = 0;
@@ -1028,13 +1030,18 @@ void ota_service()
         ArduinoOTA.setHostname(OTA_HOSTNAME);
         ArduinoOTA.setPassword(OTA_PASSWORD);
         ArduinoOTA.onStart([]() {
-            Serial.println("OTA-Update gestartet");
+            Serial.println("OTA-Update gestartet: Display aus");
+            backlight_state_before_ota = backlight_state;
+            ota_upload_active = true;
+            set_backlight_state(BacklightState::Off);
         });
         ArduinoOTA.onEnd([]() {
             Serial.println("OTA-Update abgeschlossen, Neustart folgt");
         });
         ArduinoOTA.onError([](ota_error_t error) {
             Serial.printf("OTA-Fehler [%u]\n", static_cast<unsigned int>(error));
+            ota_upload_active = false;
+            set_backlight_state(backlight_state_before_ota);
         });
         ArduinoOTA.begin();
         ota_started = true;
@@ -1273,6 +1280,10 @@ void loop()
     wifi_service();
     clock_service();
     ota_service();
+    if(ota_upload_active) {
+        delay(10);
+        return;  // LVGL und Backlight-Service waehrend OTA pausieren
+    }
     mqtt_service();
     web_service();
     publish_button_command();
