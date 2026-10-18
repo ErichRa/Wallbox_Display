@@ -111,7 +111,6 @@ WebServer web_server(80);
 bool web_server_started = false;
 bool ota_started = false;
 bool ota_upload_active = false;
-lv_obj_t *ota_static_screen = nullptr;
 BacklightState backlight_state_before_ota = BacklightState::Unknown;
 bool ota_password_warning_printed = false;
 uint32_t last_wifi_try = 0;
@@ -1015,28 +1014,6 @@ void clock_service()
     }
 }
 
-// Prepare the static screen before any OTA flash write starts.
-// No LVGL calls are made from onProgress or during the upload.
-void show_ota_static_screen()
-{
-    if(ota_static_screen != nullptr) return;
-    ota_static_screen = lv_obj_create(nullptr);
-    lv_obj_set_style_bg_color(ota_static_screen, lv_color_hex(0x101923), 0);
-    lv_obj_t *heading = lv_label_create(ota_static_screen);
-    lv_label_set_text(heading, "Firmware-Update");
-    lv_obj_set_style_text_color(heading, lv_color_white(), 0);
-    lv_obj_align(heading, LV_ALIGN_CENTER, 0, -40);
-    lv_obj_t *notice = lv_label_create(ota_static_screen);
-    lv_label_set_text(notice, "Bitte warten - Geraet startet danach neu");
-    lv_obj_set_style_text_color(notice, lv_color_hex(0xA7B5C6), 0);
-    lv_obj_align(notice, LV_ALIGN_CENTER, 0, 25);
-    lv_screen_load(ota_static_screen);
-    // Render immediately: ArduinoOTA.handle() can process the complete
-    // transfer before returning to loop().
-    lv_obj_invalidate(ota_static_screen);
-    lv_refr_now(nullptr);
-}
-
 void ota_service()
 {
     if(WiFi.status() != WL_CONNECTED) return;
@@ -1053,11 +1030,10 @@ void ota_service()
         ArduinoOTA.setHostname(OTA_HOSTNAME);
         ArduinoOTA.setPassword(OTA_PASSWORD);
         ArduinoOTA.onStart([]() {
-            Serial.println("OTA-Update gestartet: statische Update-Seite");
+            Serial.println("OTA-Update gestartet: Hintergrundbeleuchtung aus");
             backlight_state_before_ota = backlight_state;
             ota_upload_active = true;
-            show_ota_static_screen();
-            set_backlight_state(BacklightState::Active);
+            set_backlight_state(BacklightState::Off);
         });
         ArduinoOTA.onEnd([]() {
             Serial.println("OTA-Update abgeschlossen, Neustart folgt");
@@ -1065,12 +1041,6 @@ void ota_service()
         ArduinoOTA.onError([](ota_error_t error) {
             Serial.printf("OTA-Fehler [%u]\n", static_cast<unsigned int>(error));
             ota_upload_active = false;
-            if(ota_static_screen != nullptr) {
-                lv_screen_load(ui_Screen1);
-                lv_obj_delete(ota_static_screen);
-                ota_static_screen = nullptr;
-                lv_refr_now(nullptr);
-            }
             set_backlight_state(backlight_state_before_ota);
         });
         ArduinoOTA.begin();
