@@ -507,6 +507,9 @@ void set_current_phase_label(float amps, const char *phase)
 
     char current_text[16];
     snprintf(current_text, sizeof(current_text), "%.1f A", amps);
+    for (char* p = current_text; *p; ++p) {
+        if (*p == '.') *p = ',';
+    }
     lv_label_set_text(ui_CurrentLabel, current_text);
     lv_label_set_text(ui_ChargePhaseLabel, phase);
 }
@@ -517,6 +520,9 @@ void set_session_energy_label(float kwh)
 
     char text[20];
     snprintf(text, sizeof(text), "%.2f kWh", kwh);
+    for (char* p = text; *p; ++p) {
+        if (*p == '.') *p = ',';
+    }
     lv_label_set_text(ui_EnergyTodayLabel, text);
 }
 
@@ -526,6 +532,9 @@ void set_total_energy_label(float kwh)
 
     char text[40];
     snprintf(text, sizeof(text), "Energie gesamt: %.2f kWh", kwh);
+    for (char* p = text; *p; ++p) {
+        if (*p == '.') *p = ',';
+    }
     lv_label_set_text(ui_TotalEnergyLabel, text);
 }
 
