@@ -1293,6 +1293,17 @@ void loop()
     update_charge_mode_confirmation_timeout();
     backlight_service();
 
-    lv_timer_handler();
+    // With the backlight off, skip LVGL rendering while keeping MQTT,
+    // wallbox logic and touch wake-up responsive.
+    if(backlight_state == BacklightState::Off) {
+        if(touch_touched()) {
+            register_user_activity();
+            suppress_touch_until_release = true; // Wake without pressing a button
+            lv_obj_invalidate(lv_screen_active()); // Refresh current values on wake
+        }
+    }
+    else {
+        lv_timer_handler();
+    }
     delay(10);
 }
